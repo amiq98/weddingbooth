@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Booth Control Panel</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f1117; --surface: #1a1d27; --surface2: #22263a;
+    --gold: #B89B6A; --gold-light: #D4B98A; --ivory: #FAF7F2;
+    --green: #4caf7d; --red: #e05c5c; --border: rgba(255,255,255,.08);
+  }
+  body { background: var(--bg); color: var(--ivory); font-family: 'Inter', sans-serif; font-size: 14px; min-height: 100vh; }
+
+  /* ── Layout ── */
+  header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; }
+  .logo { font-size: 1rem; font-weight: 600; color: var(--gold); letter-spacing: .04em; }
+  .logo span { color: rgba(255,255,255,.5); font-weight: 300; }
+  #conn-badge { font-size: .72rem; padding: 4px 12px; border-radius: 20px; background: rgba(76,175,125,.15); color: var(--green); border: 1px solid rgba(76,175,125,.3); letter-spacing: .06em; }
+
+  .header-right { display: flex; align-items: center; gap: 10px; }
+  #cam-badge {
+    font-size: .72rem; padding: 4px 12px; border-radius: 20px;
+    background: rgba(76,175,125,.15); color: var(--green);
+    border: 1px solid rgba(76,175,125,.3); letter-spacing: .06em;
+    display: flex; align-items: center; gap: 6px; transition: all .3s;
+  }
+  #cam-badge.offline { background: rgba(224,92,92,.15); color: var(--red); border-color: rgba(224,92,92,.3); }
+  #cam-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  #cam-badge.offline .dot { animation: blink-dot 1.2s infinite; }
+  @keyframes blink-dot { 0%,100%{opacity:1} 50%{opacity:.3} }
+
+  /* ── Shoot card ── */
+  #shoot-card { grid-column: 1 / -1; display: flex; align-items: center; justify-content: center; gap: 24px; padding: 28px; }
+  #btn-shoot {
+    background: var(--gold); color: #1a1208; border: none; border-radius: 8px;
+    padding: 20px 64px; font-family: 'Inter', sans-serif; font-size: 1rem;
+    font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    cursor: pointer; transition: all .2s;
+  }
+  #btn-shoot:hover:not(:disabled) { background: var(--gold-light); transform: translateY(-1px); }
+  #btn-shoot:active:not(:disabled) { transform: translateY(0); }
+  #btn-shoot:disabled { opacity: .3; cursor: not-allowed; }
+
+  .liveview-toggle-wrap { display: flex; align-items: center; gap: 12px; }
+  #btn-liveview {
+    padding: 12px 24px; border-radius: 6px; cursor: pointer;
+    font-family: 'Inter', sans-serif; font-size: .8rem; font-weight: 600;
+    letter-spacing: .06em; text-transform: uppercase; transition: all .2s;
+    border: 1px solid var(--border); background: var(--surface2); color: rgba(255,255,255,.7);
+  }
+  #btn-liveview.stopped { background: rgba(224,92,92,.15); border-color: rgba(224,92,92,.3); color: var(--red); }
+  #btn-liveview:hover { border-color: var(--gold); color: var(--gold); }
+
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 20px; max-width: 1200px; margin: 0 auto; }
+  @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 20px; }
+  .card-title { font-size: .68rem; font-weight: 600; letter-spacing: .18em; text-transform: uppercase; color: var(--gold); margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+  .card-title svg { opacity: .7; }
+
+  /* ── Booth status card ── */
+  #booth-status-card { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+  .status-row { display: flex; align-items: center; gap: 20px; flex-wrap: wrap; }
+  .stat { display: flex; flex-direction: column; gap: 4px; }
+  .stat-label { font-size: .68rem; color: rgba(255,255,255,.4); letter-spacing: .1em; text-transform: uppercase; }
+  .stat-value { font-size: 1.4rem; font-weight: 600; color: var(--ivory); }
+  .stat-value.gold { color: var(--gold); }
+
+  /* Toggle switch */
+  .toggle-row { display: flex; align-items: center; gap: 12px; }
+  .toggle-label { font-size: .82rem; color: rgba(255,255,255,.6); }
+  .toggle { position: relative; width: 48px; height: 26px; cursor: pointer; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-track { position: absolute; inset: 0; background: rgba(255,255,255,.1); border-radius: 13px; transition: background .3s; }
+  .toggle input:checked + .toggle-track { background: var(--green); }
+  .toggle-thumb { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: #fff; border-radius: 50%; transition: transform .3s; }
+  .toggle input:checked ~ .toggle-thumb { transform: translateX(22px); }
+
+  /* Big enable button */
+  #btn-enable {
+    padding: 12px 32px; border: none; border-radius: 6px; cursor: pointer;
+    font-family: 'Inter', sans-serif; font-size: .85rem; font-weight: 600;
+    letter-spacing: .06em; text-transform: uppercase; transition: all .2s;
+  }
+  #btn-enable.on  { background: var(--red);   color: #fff; }
+  #btn-enable.off { background: var(--green);  color: #fff; }
+
+  /* ── Countdown ── */
+  .countdown-options { display: flex; gap: 10px; }
+  .cd-btn {
+    flex: 1; padding: 14px 8px; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 6px;
+    color: rgba(255,255,255,.6); font-size: 1.1rem; font-weight: 600;
+    cursor: pointer; transition: all .2s; text-align: center;
+  }
+  .cd-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .cd-btn.active { background: rgba(184,155,106,.15); border-color: var(--gold); color: var(--gold); }
+  .cd-sub { font-size: .6rem; font-weight: 400; display: block; margin-top: 2px; opacity: .6; letter-spacing: .06em; text-transform: uppercase; }
+
+  /* ── Filters ── */
+  .filter-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .filter-btn {
+    aspect-ratio: 1; border-radius: 6px; border: 2px solid var(--border);
+    background: var(--surface2); cursor: pointer; display: flex;
+    flex-direction: column; align-items: center; justify-content: center;
+    gap: 6px; transition: all .2s; padding: 8px;
+  }
+  .filter-btn:hover { border-color: rgba(184,155,106,.5); }
+  .filter-btn.active { border-color: var(--gold); background: rgba(184,155,106,.12); }
+  .filter-preview {
+    width: 100%; aspect-ratio: 16/9; border-radius: 4px;
+    background: linear-gradient(135deg, #555 0%, #888 100%);
+    overflow: hidden; position: relative;
+  }
+  .filter-preview::after { content:''; position:absolute; inset:0; }
+  .fp-none::after   { background: transparent; }
+  .fp-bw::after     { background: transparent; filter: none; mix-blend-mode: color; background: rgba(255,255,255,.0); }
+  .fp-none    { filter: none; }
+  .fp-bw      { filter: grayscale(100%); }
+  .fp-warm    { filter: sepia(40%) saturate(150%) brightness(105%); }
+  .fp-cool    { filter: saturate(70%) brightness(105%) hue-rotate(20deg); }
+  .fp-vignette{ filter: brightness(90%) contrast(110%); }
+  .fp-vintage { filter: sepia(60%) contrast(90%) brightness(95%) saturate(80%); }
+  .filter-name { font-size: .65rem; color: rgba(255,255,255,.55); letter-spacing: .06em; text-align: center; }
+  .filter-btn.active .filter-name { color: var(--gold); }
+
+  /* ── Message ── */
+  .msg-input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--ivory); font-family: 'Inter', sans-serif;
+    font-size: .9rem; padding: 12px 14px; outline: none; resize: none;
+    transition: border-color .2s;
+  }
+  .msg-input:focus { border-color: var(--gold); }
+
+  /* ── Font picker ── */
+  .font-section { margin-top: 14px; }
+  .font-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 14px; }
+  .font-tab {
+    padding: 8px 14px; font-size: .76rem; letter-spacing: .04em;
+    color: rgba(255,255,255,.45); cursor: pointer; border-bottom: 2px solid transparent;
+    transition: all .2s; margin-bottom: -1px;
+  }
+  .font-tab:hover { color: rgba(255,255,255,.7); }
+  .font-tab.active { color: var(--gold); border-bottom-color: var(--gold); }
+  .font-panel { display: none; }
+  .font-panel.active { display: block; }
+  .font-input {
+    width: 100%; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 6px; color: var(--ivory); font-family: 'Inter', sans-serif;
+    font-size: .85rem; padding: 10px 12px; outline: none; resize: none;
+    transition: border-color .2s;
+  }
+  .font-input:focus { border-color: var(--gold); }
+  .font-hint { font-size: .72rem; color: rgba(255,255,255,.35); margin-top: 8px; line-height: 1.5; }
+  .font-hint a { color: var(--gold); text-decoration: none; }
+  .font-hint a:hover { text-decoration: underline; }
+  .font-preview-row {
+    margin-top: 16px; padding: 16px; background: var(--surface2);
+    border-radius: 6px; border: 1px solid var(--border);
+    display: flex; flex-direction: column; gap: 6px;
+  }
+  .font-preview-label { font-size: .65rem; letter-spacing: .1em; text-transform: uppercase; color: rgba(255,255,255,.35); }
+  .font-preview-text { font-size: 1.6rem; color: var(--ivory); line-height: 1.3; }
+  .msg-actions { display: flex; gap: 8px; margin-top: 10px; }
+  .btn-sm {
+    padding: 8px 18px; border-radius: 5px; border: 1px solid var(--border);
+    background: transparent; color: rgba(255,255,255,.6); cursor: pointer;
+    font-family: 'Inter', sans-serif; font-size: .78rem; font-weight: 500;
+    transition: all .2s;
+  }
+  .btn-sm:hover { border-color: var(--gold); color: var(--gold); }
+  .btn-sm.primary { background: var(--gold); border-color: var(--gold); color: #1a1208; }
+  .btn-sm.primary:hover { background: var(--gold-light); }
+
+  /* ── Gallery ── */
+  .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; max-height: 420px; overflow-y: auto; }
+  .gallery-grid::-webkit-scrollbar { width: 4px; }
+  .gallery-grid::-webkit-scrollbar-track { background: transparent; }
+  .gallery-grid::-webkit-scrollbar-thumb { background: rgba(255,255,255,.1); border-radius: 2px; }
+  .g-item { position: relative; aspect-ratio: 3/2; border-radius: 6px; overflow: hidden; border: 1px solid var(--border); }
+  .g-item img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .3s; }
+  .g-item:hover img { transform: scale(1.05); }
+  .g-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.6); opacity: 0; transition: opacity .2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .g-item:hover .g-overlay { opacity: 1; }
+  .g-btn { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3); color: #fff; border-radius: 4px; padding: 5px 10px; font-size: .68rem; cursor: pointer; font-family: 'Inter', sans-serif; letter-spacing: .06em; transition: background .2s; }
+  .g-btn:hover { background: rgba(255,255,255,.3); }
+  .g-btn.print { border-color: var(--gold); color: var(--gold); }
+  .gallery-empty { color: rgba(255,255,255,.25); font-size: .82rem; letter-spacing: .06em; padding: 32px 0; text-align: center; }
+
+  .span2 { grid-column: 1 / -1; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">Booth Control <span>· Operator Panel</span></div>
+  <div class="header-right">
+    <div id="cam-badge"><span class="dot"></span><span id="cam-badge-text">Camera Connecting…</span></div>
+    <div id="conn-badge">● Connected</div>
+  </div>
+</header>
+
+<div class="grid">
+
+  <!-- Shoot card -->
+  <div class="card" id="shoot-card">
+    <button id="btn-shoot" disabled>Take Photo</button>
+    <div class="liveview-toggle-wrap">
+      <button id="btn-liveview">Stop Live View</button>
+    </div>
+  </div>
+
+  <!-- Status card -->
+  <div class="card" id="booth-status-card" style="grid-column:1/-1;">
+    <div class="status-row">
+      <div class="stat">
+        <div class="stat-label">Photos taken</div>
+        <div class="stat-value gold" id="stat-photos">0</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Countdown</div>
+        <div class="stat-value" id="stat-countdown">3s</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Filter</div>
+        <div class="stat-value" id="stat-filter">None</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">Booth status</div>
+        <div class="stat-value" id="stat-status">Active</div>
+      </div>
+    </div>
+    <button id="btn-enable" class="on">Pause Booth</button>
+  </div>
+
+  <!-- Countdown -->
+  <div class="card">
+    <div class="card-title">Countdown Timer</div>
+    <div class="countdown-options">
+      <div class="cd-btn active" data-secs="3">3<span class="cd-sub">sec</span></div>
+      <div class="cd-btn" data-secs="5">5<span class="cd-sub">sec</span></div>
+      <div class="cd-btn" data-secs="10">10<span class="cd-sub">sec</span></div>
+    </div>
+  </div>
+
+  <!-- Filters -->
+  <div class="card">
+    <div class="card-title">Filter</div>
+    <div class="filter-grid">
+      <div class="filter-btn active" data-filter="none">
+        <div class="filter-preview fp-none"></div>
+        <div class="filter-name">None</div>
+      </div>
+      <div class="filter-btn" data-filter="bw">
+        <div class="filter-preview fp-bw"></div>
+        <div class="filter-name">B&W</div>
+      </div>
+      <div class="filter-btn" data-filter="warm">
+        <div class="filter-preview fp-warm"></div>
+        <div class="filter-name">Warm</div>
+      </div>
+      <div class="filter-btn" data-filter="cool">
+        <div class="filter-preview fp-cool"></div>
+        <div class="filter-name">Cool</div>
+      </div>
+      <div class="filter-btn" data-filter="vignette">
+        <div class="filter-preview fp-vignette"></div>
+        <div class="filter-name">Vignette</div>
+      </div>
+      <div class="filter-btn" data-filter="vintage">
+        <div class="filter-preview fp-vintage"></div>
+        <div class="filter-name">Vintage</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Message + Font -->
+  <div class="card span2">
+    <div class="card-title">Custom Message on Booth Screen</div>
+
+    <textarea class="msg-input" id="msg-input" rows="2" placeholder="e.g. Welcome to Sarah & James's Wedding! 🎉"></textarea>
+
+    <div class="font-section">
+      <div class="font-tabs">
+        <div class="font-tab active" data-tab="google">Google Font</div>
+        <div class="font-tab" data-tab="css">@font-face CSS</div>
+        <div class="font-tab" data-tab="file">Font File URL (.ttf/.otf)</div>
+      </div>
+
+      <div class="font-panel active" data-panel="google">
+        <input type="text" class="font-input" id="font-google-input" placeholder="e.g. Pacifico, Playfair Display, Great Vibes">
+        <div class="font-hint">Type any font name from <a href="https://fonts.google.com" target="_blank">fonts.google.com</a> exactly as it appears there.</div>
+      </div>
+
+      <div class="font-panel" data-panel="css">
+        <textarea class="font-input" id="font-css-input" rows="3" placeholder="@font-face { font-family: 'MyFont'; src: url('https://example.com/font.woff2'); }"></textarea>
+        <div class="font-hint">Paste a full @font-face rule. The font-family name inside it will be used automatically.</div>
+      </div>
+
+      <div class="font-panel" data-panel="file">
+        <input type="text" class="font-input" id="font-file-url" placeholder="https://example.com/myfont.ttf">
+        <input type="text" class="font-input" id="font-file-name" placeholder="Give it a name, e.g. WeddingScript" style="margin-top:8px;">
+        <div class="font-hint">Paste a direct link to a .ttf, .otf, .woff, or .woff2 file and give it a name.</div>
+      </div>
+
+      <div class="font-preview-row">
+        <span class="font-preview-label">Preview:</span>
+        <span class="font-preview-text" id="font-preview-text">Forever begins here</span>
+      </div>
+    </div>
+
+    <div class="msg-actions">
+      <button class="btn-sm primary" id="btn-msg-send">Push to Screen</button>
+      <button class="btn-sm" id="btn-msg-clear">Clear</button>
+    </div>
+  </div>
+
+  <!-- Gallery -->
+  <div class="card span2">
+    <div class="card-title">Moments Gallery <span id="gallery-count" style="color:rgba(255,255,255,.3);font-size:.65rem;margin-left:8px;letter-spacing:.1em;"></span></div>
+    <div class="gallery-grid" id="gallery">
+      <div class="gallery-empty" id="gallery-empty">No photos yet — they'll appear here as guests take them</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// State
+let settings = { filter: 'none', countdown: 3, enabled: true, message: '', font: null, liveview_enabled: true };
+let activeFontTab = 'google';
+let photos = [];
+let boothEnabled = true;
+let cameraOnline = false;
+let shootInProgress = false;
+
+const FILTER_NAMES = { none:'None', bw:'B&W', warm:'Warm / Golden', cool:'Cool / Faded', vignette:'Vignette', vintage:'Vintage / Sepia' };
+
+// ── Push settings to server ──
+async function pushSettings() {
+  try {
+    await fetch('/api/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(settings)
+    });
+    updateStatBar();
+  } catch(e) {}
+}
+
+function updateStatBar() {
+  document.getElementById('stat-countdown').textContent = settings.countdown + 's';
+  document.getElementById('stat-filter').textContent = FILTER_NAMES[settings.filter] || 'None';
+  document.getElementById('stat-status').textContent = settings.enabled ? 'Active' : 'Paused';
+  const btn = document.getElementById('btn-enable');
+  btn.textContent = settings.enabled ? 'Pause Booth' : 'Resume Booth';
+  btn.className = settings.enabled ? 'on' : 'off';
+}
+
+// ── Poll for new photos ──
+async function pollPhotos() {
+  try {
+    const res  = await fetch('/api/photos');
+    const data = await res.json();
+    if (data.photos && data.photos.length !== photos.length) {
+      photos = data.photos;
+      renderGallery();
+      document.getElementById('stat-photos').textContent = photos.length;
+    }
+  } catch(e) {}
+  setTimeout(pollPhotos, 1500);
+}
+
+function renderGallery() {
+  const gallery = document.getElementById('gallery');
+  const empty   = document.getElementById('gallery-empty');
+  const countEl = document.getElementById('gallery-count');
+
+  if (photos.length === 0) {
+    empty.style.display = 'block';
+    countEl.textContent = '';
+    return;
+  }
+  empty.style.display = 'none';
+  countEl.textContent = photos.length + ' photo' + (photos.length === 1 ? '' : 's');
+
+  // Only add new photos (prepend)
+  const existing = new Set([...gallery.querySelectorAll('.g-item')].map(el => el.dataset.file));
+  [...photos].reverse().forEach(filename => {
+    if (existing.has(filename)) return;
+    const item = document.createElement('div');
+    item.className = 'g-item';
+    item.dataset.file = filename;
+
+    const img = document.createElement('img');
+    img.src = '/photos/' + filename;
+    img.alt = filename;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'g-overlay';
+
+    const dlBtn = document.createElement('button');
+    dlBtn.className = 'g-btn';
+    dlBtn.textContent = 'Save';
+    dlBtn.onclick = () => {
+      const a = document.createElement('a');
+      a.href = '/photos/' + filename;
+      a.download = filename;
+      a.click();
+    };
+
+    const printBtn = document.createElement('button');
+    printBtn.className = 'g-btn print';
+    printBtn.textContent = 'Print';
+    printBtn.onclick = () => printPhoto(filename);
+
+    overlay.appendChild(dlBtn);
+    overlay.appendChild(printBtn);
+    item.appendChild(img);
+    item.appendChild(overlay);
+    gallery.insertBefore(item, gallery.firstChild);
+  });
+}
+
+function printPhoto(filename) {
+  const win = window.open('/photos/' + filename, '_blank');
+  win.onload = () => { win.print(); };
+}
+
+// ── Countdown buttons ──
+document.querySelectorAll('.cd-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.cd-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    settings.countdown = parseInt(btn.dataset.secs);
+    pushSettings();
+  });
+});
+
+// ── Filter buttons ──
+document.querySelectorAll('.filter-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    settings.filter = btn.dataset.filter;
+    pushSettings();
+  });
+});
+
+// ── Enable/disable booth ──
+document.getElementById('btn-enable').addEventListener('click', () => {
+  settings.enabled = !settings.enabled;
+  pushSettings();
+});
+
+// ── Font tabs ──
+document.querySelectorAll('.font-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.font-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.font-panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.querySelector(`.font-panel[data-panel="${tab.dataset.tab}"]`).classList.add('active');
+    activeFontTab = tab.dataset.tab;
+  });
+});
+
+const fontPreviewText = document.getElementById('font-preview-text');
+
+function buildFontDataFromInputs() {
+  if (activeFontTab === 'google') {
+    const val = document.getElementById('font-google-input').value.trim();
+    return val ? { type: 'google', value: val } : null;
+  }
+  if (activeFontTab === 'css') {
+    const val = document.getElementById('font-css-input').value.trim();
+    return val ? { type: 'css', value: val } : null;
+  }
+  if (activeFontTab === 'file') {
+    const url  = document.getElementById('font-file-url').value.trim();
+    const name = document.getElementById('font-file-name').value.trim() || 'CustomUploadedFont';
+    return url ? { type: 'file', value: url, family: name } : null;
+  }
+  return null;
+}
+
+function applyPreviewFont(fontData) {
+  if (!fontData) { fontPreviewText.style.fontFamily = ''; return; }
+
+  if (fontData.type === 'google') {
+    const id = 'preview-google-font-link';
+    let link = document.getElementById(id);
+    if (!link) { link = document.createElement('link'); link.id = id; link.rel = 'stylesheet'; document.head.appendChild(link); }
+    const familyParam = fontData.value.replace(/\s+/g, '+');
+    link.href = `https://fonts.googleapis.com/css2?family=${familyParam}:wght@300;400;600;700&display=swap`;
+    fontPreviewText.style.fontFamily = `"${fontData.value}", serif`;
+
+  } else if (fontData.type === 'css') {
+    const id = 'preview-custom-font-style';
+    let style = document.getElementById(id);
+    if (!style) { style = document.createElement('style'); style.id = id; document.head.appendChild(style); }
+    style.textContent = fontData.value;
+    const match = fontData.value.match(/font-family\s*:\s*['"]?([^;'"]+)['"]?/i);
+    fontPreviewText.style.fontFamily = match ? `"${match[1].trim()}", serif` : '';
+
+  } else if (fontData.type === 'file') {
+    const id = 'preview-custom-font-style';
+    let style = document.getElementById(id);
+    if (!style) { style = document.createElement('style'); style.id = id; document.head.appendChild(style); }
+    style.textContent = `@font-face { font-family: '${fontData.family}'; src: url('${fontData.value}'); }`;
+    fontPreviewText.style.fontFamily = `"${fontData.family}", serif`;
+  }
+}
+
+// Live preview as user types (debounced)
+let fontPreviewTimer;
+['font-google-input', 'font-css-input', 'font-file-url', 'font-file-name'].forEach(id => {
+  document.getElementById(id).addEventListener('input', () => {
+    clearTimeout(fontPreviewTimer);
+    fontPreviewTimer = setTimeout(() => applyPreviewFont(buildFontDataFromInputs()), 400);
+  });
+});
+
+
+document.getElementById('btn-msg-send').addEventListener('click', () => {
+  settings.message = document.getElementById('msg-input').value;
+  settings.font = buildFontDataFromInputs();
+  pushSettings();
+});
+document.getElementById('btn-msg-clear').addEventListener('click', () => {
+  document.getElementById('msg-input').value = '';
+  settings.message = '';
+  pushSettings();
+});
+
+// ── Connection check ──
+async function checkConnection() {
+  try {
+    await fetch('/api/settings');
+    document.getElementById('conn-badge').textContent = '● Connected';
+    document.getElementById('conn-badge').style.color = '#4caf7d';
+  } catch(e) {
+    document.getElementById('conn-badge').textContent = '● Disconnected';
+    document.getElementById('conn-badge').style.color = '#e05c5c';
+  }
+  setTimeout(checkConnection, 3000);
+}
+
+// ── Camera online/offline status ──
+async function checkCameraStatus() {
+  try {
+    const res  = await fetch('/api/camera-status');
+    const data = await res.json();
+    setCameraOnline(data.online);
+  } catch(e) {
+    setCameraOnline(false);
+  }
+  setTimeout(checkCameraStatus, 1500);
+}
+
+function setCameraOnline(isOnline) {
+  if (isOnline === cameraOnline) {
+    // still update button disabled state in case other factors changed
+  }
+  cameraOnline = isOnline;
+  const badge = document.getElementById('cam-badge');
+  const badgeText = document.getElementById('cam-badge-text');
+  badge.classList.toggle('offline', !isOnline);
+  badgeText.textContent = isOnline ? 'Camera Online' : 'Camera Offline';
+
+  const shootBtn = document.getElementById('btn-shoot');
+  shootBtn.disabled = !isOnline || shootInProgress || !settings.liveview_enabled;
+}
+
+// ── Take Photo (control panel triggers, booth screen executes) ──
+document.getElementById('btn-shoot').addEventListener('click', async () => {
+  if (shootInProgress || !cameraOnline) return;
+  shootInProgress = true;
+  document.getElementById('btn-shoot').disabled = true;
+  document.getElementById('btn-shoot').textContent = 'Counting down…';
+
+  try {
+    await fetch('/api/shoot-request', { method: 'POST' });
+    // Wait for booth screen to ack (shutter fires at countdown zero)
+    for (let i = 0; i < 60; i++) {
+      await new Promise(r => setTimeout(r, 300));
+      const res  = await fetch('/api/capture-status');
+      const data = await res.json();
+      if (!data.pending) {
+        document.getElementById('btn-shoot').textContent = 'Developing…';
+      }
+      if (!data.capturing && !data.pending) break;
+    }
+  } catch(e) {}
+
+  shootInProgress = false;
+  document.getElementById('btn-shoot').textContent = 'Take Photo';
+  document.getElementById('btn-shoot').disabled = !cameraOnline || !settings.liveview_enabled;
+});
+
+// ── Live view stop/start ──
+document.getElementById('btn-liveview').addEventListener('click', () => {
+  settings.liveview_enabled = !settings.liveview_enabled;
+  const btn = document.getElementById('btn-liveview');
+  btn.textContent = settings.liveview_enabled ? 'Stop Live View' : 'Start Live View';
+  btn.classList.toggle('stopped', !settings.liveview_enabled);
+  document.getElementById('btn-shoot').disabled = !cameraOnline || !settings.liveview_enabled;
+  pushSettings();
+});
+
+updateStatBar();
+pollPhotos();
+checkConnection();
+checkCameraStatus();
+</script>
+</body>
+</html>
