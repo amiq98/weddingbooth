@@ -13,8 +13,14 @@ app = Flask(__name__, static_folder='.')
 def handle_unexpected_error(e):
     log_error(f'Unhandled server error: {e}')
     return jsonify({'error': 'Internal server error'}), 500
-PHOTO_DIR = os.path.expanduser('~/wedding-booth/photos')
-os.makedirs(PHOTO_DIR, exist_ok=True)
+BASE_PHOTO_DIR = os.path.expanduser('~/wedding-booth/photos')
+os.makedirs(BASE_PHOTO_DIR, exist_ok=True)
+
+def get_photo_dir():
+    """Returns today's dated subfolder, creating it if needed."""
+    dated = os.path.join(BASE_PHOTO_DIR, time.strftime('%Y-%m-%d'))
+    os.makedirs(dated, exist_ok=True)
+    return dated
 
 # ── Shared state ──
 preview_lock = threading.Lock()
@@ -70,9 +76,9 @@ def preview_loop():
             time.sleep(0.1)
             continue
         try:
-            tmp = os.path.join(PHOTO_DIR, '_preview_tmp.jpg')
+            tmp = os.path.join(BASE_PHOTO_DIR, '_preview_tmp.jpg')
             code, out, err = run(['gphoto2', '--capture-preview', '--filename', tmp, '--force-overwrite'])
-            matches = glob.glob(os.path.join(PHOTO_DIR, '*preview*'))
+            matches = glob.glob(os.path.join(BASE_PHOTO_DIR, '*preview*'))
             if code == 0 and matches:
                 newest = max(matches, key=os.path.getmtime)
                 with open(newest, 'rb') as f:
@@ -119,13 +125,16 @@ def apply_filter(image_path, filter_name):
         elif filter_name == 'vignette':
             img = ImageEnhance.Contrast(img).enhance(1.1)
             img = ImageEnhance.Brightness(img).enhance(0.95)
-            # Radial vignette mask
             w, h = img.size
-            mask = Image.new('L', (w, h), 0)
             from PIL import ImageDraw
+            # Map strength 1-100 to inner ellipse inset: weak=large ellipse, strong=small ellipse
+            strength = settings.get('vignette_strength', 50) / 100.0
+            inset = 0.5 - (strength * 0.45)  # ranges from 0.05 (strong) to 0.5 (subtle)
+            mask = Image.new('L', (w, h), 0)
             draw = ImageDraw.Draw(mask)
-            draw.ellipse([-w*0.2, -h*0.2, w*1.2, h*1.2], fill=255)
-            mask = mask.filter(ImageFilter.GaussianBlur(radius=min(w, h)//6))
+            draw.ellipse([w * inset, h * inset, w * (1 - inset), h * (1 - inset)], fill=255)
+            blur_radius = int(min(w, h) * (0.15 + strength * 0.25))
+            mask = mask.filter(ImageFilter.GaussianBlur(radius=blur_radius))
             black = Image.new('RGB', (w, h), (0, 0, 0))
             img = Image.composite(img, black, mask)
 
@@ -210,7 +219,8 @@ def do_capture():
         # then hold the lock for the entire real capture so nothing else
         # can touch the camera's USB connection until we're done.
         with camera_lock:
-            filename = os.path.join(PHOTO_DIR, time.strftime('%Y%m%d_%H%M%S') + '.jpg')
+            photo_dir = get_photo_dir()  # resolves to today's date folder
+            filename = os.path.join(photo_dir, time.strftime('%H%M%S') + '.jpg')
             code, out, err = run([
                 'gphoto2', '--capture-image-and-download',
                 '--filename', filename,
@@ -218,7 +228,8 @@ def do_capture():
             ])
 
         if code == 0 and os.path.exists(filename):
-            apply_filter(filename, settings.get('filter', 'none'))
+            active_filter = settings.get('filter', 'none')
+            apply_filter(filename, active_filter)
         else:
             log_error(f'Capture failed: {err.strip()}')
     finally:
@@ -227,9 +238,9 @@ def do_capture():
         shoot_acked = False
 
 
-@app.route('/photos/<filename>')
-def photo(filename):
-    return send_from_directory(PHOTO_DIR, filename)
+@app.route('/photos/<date>/<filename>')
+def photo(date, filename):
+    return send_from_directory(os.path.join(BASE_PHOTO_DIR, date), filename)
 
 # ── Routes: control panel API ──
 @app.route('/api/settings', methods=['GET'])
@@ -244,9 +255,15 @@ def post_settings():
 
 @app.route('/api/photos', methods=['GET'])
 def get_photos():
-    files = sorted(glob.glob(os.path.join(PHOTO_DIR, '*.jpg')))
-    files = [os.path.basename(f) for f in files if 'preview' not in os.path.basename(f)]
-    return jsonify({'photos': files})
+    # Collect photos from all dated subfolders, newest dates first
+    all_files = []
+    for date_dir in sorted(glob.glob(os.path.join(BASE_PHOTO_DIR, '????-??-??')), reverse=True):
+        date = os.path.basename(date_dir)
+        files = sorted(glob.glob(os.path.join(date_dir, '*.jpg')), reverse=True)
+        for f in files:
+            if 'preview' not in os.path.basename(f):
+                all_files.append({'date': date, 'file': os.path.basename(f)})
+    return jsonify({'photos': all_files})
 
 if __name__ == '__main__':
     if not PIL_AVAILABLE:
