@@ -127,6 +127,43 @@
   .filter-name { font-size: .65rem; color: rgba(255,255,255,.55); letter-spacing: .06em; text-align: center; }
   .filter-btn.active .filter-name { color: var(--gold); }
 
+  /* ── Vignette strength slider ── */
+  #vignette-slider-wrap {
+    display: none;
+    margin-top: 16px;
+    padding: 14px 16px;
+    background: var(--surface2);
+    border: 1px solid rgba(184,155,106,.2);
+    border-radius: 6px;
+  }
+  #vignette-slider-wrap.visible { display: block; }
+  .vignette-slider-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .vignette-slider-label { font-size: .72rem; letter-spacing: .1em; text-transform: uppercase; color: var(--gold); }
+  #vignette-value-display { font-size: .82rem; color: rgba(255,255,255,.6); font-variant-numeric: tabular-nums; }
+  #vignette-slider {
+    width: 100%;
+    -webkit-appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(to right, var(--gold) 0%, var(--gold) 50%, rgba(255,255,255,.15) 50%, rgba(255,255,255,.15) 100%);
+    outline: none;
+    cursor: pointer;
+  }
+  #vignette-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: var(--gold);
+    border: 2px solid #fff;
+    cursor: pointer;
+    box-shadow: 0 1px 6px rgba(0,0,0,.4);
+  }
+
   /* ── Message ── */
   .msg-input {
     width: 100%; background: var(--surface2); border: 1px solid var(--border);
@@ -276,6 +313,15 @@
         <div class="filter-name">Vintage</div>
       </div>
     </div>
+
+    <!-- Vignette strength slider — only shown when vignette is active -->
+    <div id="vignette-slider-wrap">
+      <div class="vignette-slider-header">
+        <span class="vignette-slider-label">Vignette Strength</span>
+        <span id="vignette-value-display">50%</span>
+      </div>
+      <input type="range" id="vignette-slider" min="1" max="100" value="50" />
+    </div>
   </div>
 
   <!-- Message + Font -->
@@ -331,7 +377,7 @@
 
 <script>
 // State
-let settings = { filter: 'none', countdown: 3, enabled: true, message: '', font: null, liveview_enabled: true };
+let settings = { filter: 'none', countdown: 3, enabled: true, message: '', font: null, liveview_enabled: true, vignette_strength: 50 };
 let activeFontTab = 'google';
 let photos = [];
 let boothEnabled = true;
@@ -388,17 +434,21 @@ function renderGallery() {
   empty.style.display = 'none';
   countEl.textContent = photos.length + ' photo' + (photos.length === 1 ? '' : 's');
 
-  // Only add new photos (prepend)
-  const existing = new Set([...gallery.querySelectorAll('.g-item')].map(el => el.dataset.file));
-  [...photos].reverse().forEach(filename => {
-    if (existing.has(filename)) return;
+  // Only add new photos (prepend) — track by date/file key
+  const existing = new Set([...gallery.querySelectorAll('.g-item')].map(el => el.dataset.key));
+  photos.forEach(photo => {
+    const key = photo.date + '/' + photo.file;
+    if (existing.has(key)) return;
+    const url = `/photos/${photo.date}/${photo.file}`;
+
     const item = document.createElement('div');
     item.className = 'g-item';
-    item.dataset.file = filename;
+    item.dataset.key = key;
+    item.title = photo.date;
 
     const img = document.createElement('img');
-    img.src = '/photos/' + filename;
-    img.alt = filename;
+    img.src = url;
+    img.alt = key;
 
     const overlay = document.createElement('div');
     overlay.className = 'g-overlay';
@@ -408,15 +458,15 @@ function renderGallery() {
     dlBtn.textContent = 'Save';
     dlBtn.onclick = () => {
       const a = document.createElement('a');
-      a.href = '/photos/' + filename;
-      a.download = filename;
+      a.href = url;
+      a.download = photo.file;
       a.click();
     };
 
     const printBtn = document.createElement('button');
     printBtn.className = 'g-btn print';
     printBtn.textContent = 'Print';
-    printBtn.onclick = () => printPhoto(filename);
+    printBtn.onclick = () => printPhoto(url);
 
     overlay.appendChild(dlBtn);
     overlay.appendChild(printBtn);
@@ -426,8 +476,8 @@ function renderGallery() {
   });
 }
 
-function printPhoto(filename) {
-  const win = window.open('/photos/' + filename, '_blank');
+function printPhoto(url) {
+  const win = window.open(url, '_blank');
   win.onload = () => { win.print(); };
 }
 
@@ -442,13 +492,28 @@ document.querySelectorAll('.cd-btn').forEach(btn => {
 });
 
 // ── Filter buttons ──
+const vignetteSliderWrap = document.getElementById('vignette-slider-wrap');
+const vignetteSlider     = document.getElementById('vignette-slider');
+const vignetteDisplay    = document.getElementById('vignette-value-display');
+
 document.querySelectorAll('.filter-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     settings.filter = btn.dataset.filter;
+    // Show slider only for vignette
+    vignetteSliderWrap.classList.toggle('visible', settings.filter === 'vignette');
     pushSettings();
   });
+});
+
+// Update slider gradient fill and push strength to server as user drags
+vignetteSlider.addEventListener('input', () => {
+  const val = vignetteSlider.value;
+  vignetteDisplay.textContent = val + '%';
+  vignetteSlider.style.background = `linear-gradient(to right, var(--gold) 0%, var(--gold) ${val}%, rgba(255,255,255,.15) ${val}%, rgba(255,255,255,.15) 100%)`;
+  settings.vignette_strength = parseInt(val);
+  pushSettings();
 });
 
 // ── Enable/disable booth ──
