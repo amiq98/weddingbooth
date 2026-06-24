@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Wedding Photo Booth</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&display=swap');
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root { --gold: #B89B6A; --gold-light: #D4B98A; --ink: #1C1714; --ivory: #FAF7F2; --bark: #3A2E28; --red: #c0392b; }
+
+  body {
+    background: #000;
+    color: var(--ivory);
+    font-family: 'Cormorant Garamond', serif;
+    height: 100vh;
+    width: 100vw;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── Top bar (slim, for a vertical/portrait monitor) ── */
+  #topbar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px 20px 14px;
+    border-bottom: 1px solid rgba(184,155,106,.2);
+    flex-shrink: 0;
+    background: #0a0807;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .eyebrow { font-size:.66rem; letter-spacing:.3em; text-transform:uppercase; color:var(--gold); }
+  h1 { font-family:'Playfair Display',serif; font-size:1.3rem; font-weight:400; text-align: center; }
+  h1 em { font-style:italic; color:var(--gold-light); }
+
+  /* ── Viewfinder — fills remaining vertical space ── */
+  #viewfinder-wrap {
+    flex: 1;
+    position: relative;
+    overflow: hidden;
+    background: #000;
+    min-height: 0;
+  }
+  #preview-img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    display: block;
+    transform: scaleX(-1); /* mirror for natural selfie feel */
+    transition: filter .4s;
+  }
+  #placeholder {
+    position: absolute; inset: 0;
+    display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    gap: 16px;
+    color: rgba(255,255,255,.25);
+    font-size: 1rem; letter-spacing: .1em;
+    text-align: center;
+    padding: 0 24px;
+  }
+  .cam-icon { font-size: 4rem; opacity: .3; }
+
+  /* CSS filters applied to live view (purely visual preview) */
+  #preview-img.filter-bw       { filter: grayscale(100%); }
+  #preview-img.filter-warm     { filter: sepia(40%) saturate(150%) brightness(105%); }
+  #preview-img.filter-cool     { filter: saturate(70%) brightness(105%) hue-rotate(20deg); }
+  #preview-img.filter-vignette { filter: brightness(90%) contrast(110%); }
+  #preview-img.filter-vintage  { filter: sepia(60%) contrast(90%) brightness(95%) saturate(80%); }
+
+  #vignette-overlay {
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at center, transparent 55%, rgba(0,0,0,.7) 100%);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .4s;
+    z-index: 5;
+  }
+  #vignette-overlay.active { opacity: 1; }
+
+  /* Message banner overlay */
+  #custom-message-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    z-index: 12;
+    display: flex;
+    justify-content: center;
+    padding: 24px 20px 36px;
+    background: linear-gradient(to bottom, rgba(0,0,0,.65) 0%, rgba(0,0,0,.35) 60%, transparent 100%);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .4s;
+  }
+  #custom-message-overlay.active { opacity: 1; }
+  #custom-message {
+    color: var(--ivory);
+    font-size: clamp(1.2rem, 5vw, 2rem);
+    text-align: center;
+    text-shadow: 0 2px 20px rgba(0,0,0,.8), 0 0 40px rgba(0,0,0,.5);
+    letter-spacing: .02em;
+    max-width: 92%;
+    line-height: 1.3;
+  }
+
+  /* Corner brackets */
+  .corner { position:absolute; width:36px; height:36px; border-color:var(--gold); border-style:solid; z-index:10; pointer-events:none; opacity:.6; }
+  .corner.tl { top:16px; left:16px; border-width:1.5px 0 0 1.5px; }
+  .corner.tr { top:16px; right:16px; border-width:1.5px 1.5px 0 0; }
+  .corner.bl { bottom:16px; left:16px; border-width:0 0 1.5px 1.5px; }
+  .corner.br { bottom:16px; right:16px; border-width:0 1.5px 1.5px 0; }
+
+  /* Flash */
+  #flash { position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none; z-index:20; transition:opacity .08s; }
+  #flash.active { opacity:1; }
+
+  /* Countdown */
+  #countdown-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:15; pointer-events:none; opacity:0; transition:opacity .2s; }
+  #countdown-overlay.visible { opacity:1; }
+  #countdown-num {
+    font-family:'Playfair Display',serif;
+    font-size: clamp(6rem, 28vw, 11rem);
+    color: rgba(255,255,255,.95);
+    text-shadow: 0 0 60px rgba(184,155,106,.9), 0 4px 40px #000;
+    line-height: 1;
+  }
+  @keyframes popIn { from{transform:scale(.4);opacity:0} to{transform:scale(1);opacity:1} }
+  .pop { animation: popIn .4s cubic-bezier(.34,1.56,.64,1); }
+
+  /* Offline overlay */
+  #offline-overlay {
+    position: absolute; inset: 0;
+    z-index: 25;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(0,0,0,.35);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .4s;
+  }
+  #offline-overlay.active { opacity: 1; }
+  #offline-text {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.6rem, 7vw, 2.6rem);
+    letter-spacing: .1em;
+    text-transform: uppercase;
+    color: rgba(255,255,255,.9);
+    text-shadow: 0 4px 30px rgba(0,0,0,.8);
+  }
+
+  /* ── Bottom bar (status only — Take Photo lives on control panel now) ── */
+  #bottombar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-top: 1px solid rgba(184,155,106,.15);
+    background: #0a0807;
+    flex-shrink: 0;
+    gap: 12px;
+  }
+  #status { font-size:.7rem; letter-spacing:.08em; color:rgba(255,255,255,.35); }
+  #filter-label { font-size:.7rem; letter-spacing:.08em; color:var(--gold); opacity:.7; }
+
+  /* Toast */
+  #toast { position:fixed; bottom:70px; left:50%; transform:translateX(-50%) translateY(16px); background:var(--bark); border:1px solid var(--gold); color:var(--ivory); font-size:.8rem; letter-spacing:.06em; padding:11px 24px; pointer-events:none; opacity:0; transition:all .3s; white-space:nowrap; z-index:100; max-width: 90%; text-align:center; }
+  #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <div class="eyebrow">Sony A7IV · Live</div>
+  <h1>Forever <em>Begins</em> Here</h1>
+</div>
+
+<div id="viewfinder-wrap">
+  <div class="corner tl"></div>
+  <div class="corner tr"></div>
+  <div class="corner bl"></div>
+  <div class="corner br"></div>
+  <div id="custom-message-overlay"><div id="custom-message"></div></div>
+  <div id="vignette-overlay"></div>
+  <div id="placeholder">
+    <div class="cam-icon">📷</div>
+    <span>Connecting to camera…</span>
+  </div>
+  <img id="preview-img" src="" alt="Live view" style="display:none;" />
+  <div id="flash"></div>
+  <div id="countdown-overlay"><div id="countdown-num">3</div></div>
+  <div id="offline-overlay"><div id="offline-text">Offline</div></div>
+</div>
+
+<div id="bottombar">
+  <div id="status">Waiting for camera…</div>
+  <div id="filter-label">No filter</div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+let shooting = false;
+let currentFilter = 'none';
+let countdownSecs = 3;
+let customMessage = null;
+let currentFontKey = null;
+let cameraOnline = false;
+let liveviewRunning = true;
+let lastSuccessfulFrame = 0;
+const OFFLINE_THRESHOLD_MS = 4000; // no frame in 4s = offline
+
+const statusEl    = document.getElementById('status');
+const previewImg  = document.getElementById('preview-img');
+const placeholder = document.getElementById('placeholder');
+const filterLabel = document.getElementById('filter-label');
+const msgEl       = document.getElementById('custom-message');
+const msgOverlay  = document.getElementById('custom-message-overlay');
+const vigEl       = document.getElementById('vignette-overlay');
+const offlineOverlay = document.getElementById('offline-overlay');
+
+const FILTER_NAMES = {
+  none: 'No filter', bw: 'Black & White', warm: 'Warm / Golden',
+  cool: 'Cool / Faded', vignette: 'Vignette', vintage: 'Vintage / Sepia'
+};
+
+// ── Dynamic font loading ──
+function applyFont(fontData) {
+  if (!fontData || !fontData.type) {
+    msgEl.style.fontFamily = '';
+    currentFontKey = 'none';
+    return;
+  }
+  const key = fontData.type + ':' + fontData.value;
+  if (key === currentFontKey) return;
+  currentFontKey = key;
+
+  if (fontData.type === 'google') {
+    const id = 'google-font-link';
+    let link = document.getElementById(id);
+    if (!link) { link = document.createElement('link'); link.id = id; link.rel = 'stylesheet'; document.head.appendChild(link); }
+    const familyParam = fontData.value.trim().replace(/\s+/g, '+');
+    link.href = `https://fonts.googleapis.com/css2?family=${familyParam}:wght@300;400;600;700&display=swap`;
+    msgEl.style.fontFamily = `"${fontData.value.trim()}", serif`;
+  } else if (fontData.type === 'css') {
+    const id = 'custom-font-style';
+    let style = document.getElementById(id);
+    if (!style) { style = document.createElement('style'); style.id = id; document.head.appendChild(style); }
+    style.textContent = fontData.value;
+    const match = fontData.value.match(/font-family\s*:\s*['"]?([^;'"]+)['"]?/i);
+    msgEl.style.fontFamily = match ? `"${match[1].trim()}", serif` : '';
+  } else if (fontData.type === 'file') {
+    const id = 'custom-font-style';
+    let style = document.getElementById(id);
+    if (!style) { style = document.createElement('style'); style.id = id; document.head.appendChild(style); }
+    const family = fontData.family || 'CustomUploadedFont';
+    style.textContent = `@font-face { font-family: '${family}'; src: url('${fontData.value}'); }`;
+    msgEl.style.fontFamily = `"${family}", serif`;
+  }
+}
+
+// ── Live preview ──
+async function previewLoop() {
+  while (true) {
+    if (!liveviewRunning) { await sleep(400); continue; }
+    try {
+      const res = await fetch('/preview?t=' + Date.now());
+      if (res.ok) {
+        const blob = await res.blob();
+        const url  = URL.createObjectURL(blob);
+        const old  = previewImg.src;
+        previewImg.src = url;
+        previewImg.style.display = 'block';
+        placeholder.style.display = 'none';
+        if (old.startsWith('blob:')) URL.revokeObjectURL(old);
+        lastSuccessfulFrame = Date.now();
+        setCameraOnline(true);
+      }
+    } catch(e) {}
+    await sleep(150);
+  }
+}
+
+function setCameraOnline(isOnline) {
+  if (isOnline === cameraOnline) return;
+  cameraOnline = isOnline;
+  offlineOverlay.classList.toggle('active', !isOnline);
+  statusEl.textContent = isOnline ? 'Camera ready' : 'Camera offline';
+}
+
+// Watchdog: if no frame received recently, mark offline
+setInterval(() => {
+  if (liveviewRunning && Date.now() - lastSuccessfulFrame > OFFLINE_THRESHOLD_MS) {
+    setCameraOnline(false);
+  }
+}, 1000);
+
+// ── Countdown (triggered remotely by control panel via /api/trigger) ──
+async function runCountdown(secs) {
+  const overlay = document.getElementById('countdown-overlay');
+  const numEl   = document.getElementById('countdown-num');
+  overlay.classList.add('visible');
+  for (let i = secs; i >= 1; i--) {
+    numEl.textContent = i;
+    numEl.classList.remove('pop');
+    numEl.offsetHeight;
+    numEl.classList.add('pop');
+    await sleep(1000);
+  }
+  overlay.classList.remove('visible');
+}
+
+function flashScreen() {
+  const f = document.getElementById('flash');
+  f.classList.add('active');
+  setTimeout(() => f.classList.remove('active'), 220);
+}
+
+// ── Listen for remote shoot commands from control panel ──
+async function pollShootCommand() {
+  try {
+    const res  = await fetch('/api/shoot-pending');
+    const data = await res.json();
+    if (data.pending && !shooting) {
+      shooting = true;
+      await runCountdown(countdownSecs);
+      // Fire the shutter exactly now, at countdown zero
+      flashScreen();
+      await fetch('/api/shoot-ack', { method: 'POST' });
+      // Don't wait for the slow download/transfer — return to live view
+      // immediately. The photo will simply appear in the gallery shortly.
+      showToast('Got it! Developing your photo…');
+      shooting = false;
+    }
+  } catch(e) {}
+  setTimeout(pollShootCommand, 400);
+}
+
+// ── Sync settings from control panel ──
+async function syncSettings() {
+  try {
+    const res  = await fetch('/api/settings');
+    const data = await res.json();
+
+    if (data.filter !== currentFilter) {
+      currentFilter = data.filter;
+      previewImg.className = currentFilter !== 'none' ? 'filter-' + currentFilter : '';
+      vigEl.classList.toggle('active', currentFilter === 'vignette');
+      if (currentFilter === 'vignette' && data.vignette_strength !== undefined) {
+        // Map 1-100 strength to a CSS radial gradient stop position
+        // Strength 1 = very subtle (centre takes up 80% before falloff)
+        // Strength 100 = very heavy (centre only 20% before falloff)
+        const innerStop = Math.round(80 - (data.vignette_strength * 0.6));
+        vigEl.style.background = `radial-gradient(ellipse at center, transparent ${innerStop}%, rgba(0,0,0,.85) 100%)`;
+      }
+      filterLabel.textContent = FILTER_NAMES[currentFilter] || 'No filter';
+    }
+
+    countdownSecs = data.countdown || 3;
+
+    liveviewRunning = data.liveview_enabled !== false;
+    if (!liveviewRunning) {
+      statusEl.textContent = 'Live view stopped by operator';
+    }
+
+    const newMsg = data.message || '';
+    if (newMsg !== customMessage) {
+      customMessage = newMsg;
+      msgEl.textContent = customMessage;
+      msgOverlay.classList.toggle('active', !!customMessage);
+    }
+
+    if (data.font) applyFont(data.font);
+
+  } catch(e) {}
+  setTimeout(syncSettings, 800);
+}
+
+let toastTimer;
+function showToast(msg, isError=false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.borderColor = isError ? '#C0392B' : 'var(--gold)';
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+
+previewLoop();
+syncSettings();
+pollShootCommand();
+</script>
+</body>
+</html>
