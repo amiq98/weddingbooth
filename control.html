@@ -30,6 +30,25 @@
   #cam-badge.offline { background: rgba(224,92,92,.15); color: var(--red); border-color: rgba(224,92,92,.3); }
   #cam-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
   #cam-badge.offline .dot { animation: blink-dot 1.2s infinite; }
+
+  #sd-badge {
+    font-size: .72rem; padding: 4px 12px; border-radius: 20px;
+    background: rgba(224,92,92,.15); color: var(--red);
+    border: 1px solid rgba(224,92,92,.3); letter-spacing: .06em;
+    display: flex; align-items: center; gap: 6px;
+  }
+  #sd-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  #sd-badge-text { animation: blink-text 1.6s infinite; }
+
+  #disk-badge {
+    font-size: .72rem; padding: 4px 12px; border-radius: 20px;
+    background: rgba(224,92,92,.15); color: var(--red);
+    border: 1px solid rgba(224,92,92,.3); letter-spacing: .06em;
+    display: flex; align-items: center; gap: 6px;
+  }
+  #disk-badge .dot { width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  #disk-badge-text { animation: blink-text 1.6s infinite; }
+  @keyframes blink-text { 0%,100%{opacity:1} 50%{opacity:.45} }
   @keyframes blink-dot { 0%,100%{opacity:1} 50%{opacity:.3} }
 
   /* ── Shoot card ── */
@@ -44,6 +63,16 @@
   #btn-shoot:active:not(:disabled) { transform: translateY(0); }
   #btn-shoot:disabled { opacity: .3; cursor: not-allowed; }
 
+  #btn-burst-shoot {
+    background: transparent; color: var(--gold); border: 1.5px solid var(--gold);
+    border-radius: 8px; padding: 20px 40px; font-family: 'Inter', sans-serif;
+    font-size: 1rem; font-weight: 700; letter-spacing: .1em; text-transform: uppercase;
+    cursor: pointer; transition: all .2s;
+  }
+  #btn-burst-shoot:hover:not(:disabled) { background: rgba(184,155,106,.1); transform: translateY(-1px); }
+  #btn-burst-shoot:active:not(:disabled) { transform: translateY(0); }
+  #btn-burst-shoot:disabled { opacity: .3; cursor: not-allowed; }
+
   .liveview-toggle-wrap { display: flex; align-items: center; gap: 12px; }
   #btn-liveview {
     padding: 12px 24px; border-radius: 6px; cursor: pointer;
@@ -52,6 +81,23 @@
     border: 1px solid var(--border); background: var(--surface2); color: rgba(255,255,255,.7);
   }
   #btn-liveview.stopped { background: rgba(224,92,92,.15); border-color: rgba(224,92,92,.3); color: var(--red); }
+
+  #btn-restart-camera {
+    padding: 12px 24px; border-radius: 6px; cursor: pointer;
+    font-family: 'Inter', sans-serif; font-size: .8rem; font-weight: 600;
+    letter-spacing: .06em; text-transform: uppercase; transition: all .2s;
+    border: 1px solid var(--border); background: var(--surface2); color: rgba(255,255,255,.7);
+  }
+  #btn-restart-camera:hover { border-color: var(--gold); color: var(--gold); }
+  #btn-restart-camera:disabled { opacity: .5; cursor: not-allowed; }
+
+  #btn-show-idle {
+    padding: 12px 24px; border-radius: 6px; cursor: pointer;
+    font-family: 'Inter', sans-serif; font-size: .8rem; font-weight: 600;
+    letter-spacing: .06em; text-transform: uppercase; transition: all .2s;
+    border: 1px solid var(--border); background: var(--surface2); color: rgba(255,255,255,.7);
+  }
+  #btn-show-idle:hover { border-color: var(--gold); color: var(--gold); }
   #btn-liveview:hover { border-color: var(--gold); color: var(--gold); }
 
   .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 20px; max-width: 1200px; margin: 0 auto; }
@@ -78,15 +124,6 @@
   .toggle input:checked + .toggle-track { background: var(--green); }
   .toggle-thumb { position: absolute; top: 3px; left: 3px; width: 20px; height: 20px; background: #fff; border-radius: 50%; transition: transform .3s; }
   .toggle input:checked ~ .toggle-thumb { transform: translateX(22px); }
-
-  /* Big enable button */
-  #btn-enable {
-    padding: 12px 32px; border: none; border-radius: 6px; cursor: pointer;
-    font-family: 'Inter', sans-serif; font-size: .85rem; font-weight: 600;
-    letter-spacing: .06em; text-transform: uppercase; transition: all .2s;
-  }
-  #btn-enable.on  { background: var(--red);   color: #fff; }
-  #btn-enable.off { background: var(--green);  color: #fff; }
 
   /* ── Countdown ── */
   .countdown-options { display: flex; gap: 10px; }
@@ -223,6 +260,15 @@
   .g-item:hover img { transform: scale(1.05); }
   .g-overlay { position: absolute; inset: 0; background: rgba(0,0,0,.6); opacity: 0; transition: opacity .2s; display: flex; align-items: center; justify-content: center; gap: 8px; }
   .g-item:hover .g-overlay { opacity: 1; }
+  .g-select-checkbox {
+    position: absolute;
+    top: 6px; left: 6px;
+    width: 22px; height: 22px;
+    z-index: 5;
+    cursor: pointer;
+    accent-color: var(--gold);
+  }
+  .g-item.selected { outline: 2px solid var(--gold); outline-offset: -2px; }
   .g-btn { background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3); color: #fff; border-radius: 4px; padding: 5px 10px; font-size: .68rem; cursor: pointer; font-family: 'Inter', sans-serif; letter-spacing: .06em; transition: background .2s; }
   .g-btn:hover { background: rgba(255,255,255,.3); }
   .g-btn.print { border-color: var(--gold); color: var(--gold); }
@@ -236,6 +282,8 @@
 <header>
   <div class="logo">Booth Control <span>· Operator Panel</span></div>
   <div class="header-right">
+    <div id="disk-badge" style="display:none;"><span class="dot"></span><span id="disk-badge-text">Disk Space Low</span></div>
+    <div id="sd-badge" style="display:none;"><span class="dot"></span><span id="sd-badge-text">SD Card Low</span></div>
     <div id="cam-badge"><span class="dot"></span><span id="cam-badge-text">Camera Connecting…</span></div>
     <div id="conn-badge">● Connected</div>
   </div>
@@ -243,11 +291,21 @@
 
 <div class="grid">
 
+  <!-- Booth Title -->
+  <div class="card span2">
+    <div class="card-title">Booth Display Name</div>
+    <input type="text" class="font-input" id="booth-title-input" placeholder="e.g. Haley & Gary" value="Haley &amp; Gary">
+    <div class="font-hint" style="margin-top:8px;">Shown at the top of the booth screen and on the idle/screensaver page. "Photo Booth" is always shown above it automatically.</div>
+  </div>
+
   <!-- Shoot card -->
   <div class="card" id="shoot-card">
     <button id="btn-shoot" disabled>Take Photo</button>
+    <button id="btn-burst-shoot" disabled>Take 4 Photos</button>
     <div class="liveview-toggle-wrap">
       <button id="btn-liveview">Stop Live View</button>
+      <button id="btn-restart-camera">Restart Camera</button>
+      <button id="btn-show-idle">Show Screensaver</button>
     </div>
   </div>
 
@@ -255,7 +313,7 @@
   <div class="card" id="booth-status-card" style="grid-column:1/-1;">
     <div class="status-row">
       <div class="stat">
-        <div class="stat-label">Photos taken</div>
+        <div class="stat-label">Photos today</div>
         <div class="stat-value gold" id="stat-photos">0</div>
       </div>
       <div class="stat">
@@ -271,7 +329,6 @@
         <div class="stat-value" id="stat-status">Active</div>
       </div>
     </div>
-    <button id="btn-enable" class="on">Pause Booth</button>
   </div>
 
   <!-- Countdown -->
@@ -282,6 +339,16 @@
       <div class="cd-btn" data-secs="5">5<span class="cd-sub">sec</span></div>
       <div class="cd-btn" data-secs="10">10<span class="cd-sub">sec</span></div>
     </div>
+  </div>
+
+  <!-- Orientation -->
+  <div class="card">
+    <div class="card-title">Camera Orientation</div>
+    <div class="countdown-options">
+      <div class="cd-btn orientation-btn active" data-orientation="portrait">Vertical</div>
+      <div class="cd-btn orientation-btn" data-orientation="landscape">Horizontal</div>
+    </div>
+    <div class="font-hint" style="margin-top:10px;">Choose Vertical if the camera is physically mounted sideways on a portrait monitor.</div>
   </div>
 
   <!-- Filters -->
@@ -328,7 +395,7 @@
   <div class="card span2">
     <div class="card-title">Custom Message on Booth Screen</div>
 
-    <textarea class="msg-input" id="msg-input" rows="2" placeholder="e.g. Welcome to Sarah & James's Wedding! 🎉"></textarea>
+    <textarea class="msg-input" id="msg-input" rows="2" placeholder="e.g. Welcome to Sarah &amp; James's Wedding"></textarea>
 
     <div class="font-section">
       <div class="font-tabs">
@@ -365,6 +432,24 @@
     </div>
   </div>
 
+  <!-- Photo Grid Creator -->
+  <div class="card span2">
+    <div class="card-title">Create 4-Photo Grid</div>
+    <input type="text" class="font-input" id="grid-title-input" placeholder="e.g. Haley & Gary's Wedding" value="Haley &amp; Gary&#39;s Wedding" style="margin-bottom:12px;">
+    <div class="msg-actions">
+      <button class="btn-sm primary" id="btn-grid-last4">Use Last 4 Photos</button>
+      <button class="btn-sm" id="btn-grid-selected" disabled>Create Grid From Selected (<span id="grid-selected-count">0</span>/4)</button>
+      <button class="btn-sm" id="btn-grid-clear-selection">Clear Selection</button>
+    </div>
+    <div class="font-hint" style="margin-top:10px;">Tick exactly 4 photos in the gallery below, or use the shortcut for the most recent 4.</div>
+    <div id="grid-result" style="display:none; margin-top:14px;">
+      <div class="font-hint" style="color:var(--green);">Grid created!</div>
+      <div class="g-item" style="max-width:260px; aspect-ratio:1; margin-top:8px;">
+        <img id="grid-result-img" src="" alt="Created grid" style="width:100%;height:100%;object-fit:cover;border-radius:6px;">
+      </div>
+    </div>
+  </div>
+
   <!-- Gallery -->
   <div class="card span2">
     <div class="card-title">Moments Gallery <span id="gallery-count" style="color:rgba(255,255,255,.3);font-size:.65rem;margin-left:8px;letter-spacing:.1em;"></span></div>
@@ -377,12 +462,13 @@
 
 <script>
 // State
-let settings = { filter: 'none', countdown: 3, enabled: true, message: '', font: null, liveview_enabled: true, vignette_strength: 50 };
+let settings = { filter: 'none', countdown: 3, enabled: true, message: '', font: null, liveview_enabled: true, vignette_strength: 50, orientation: 'portrait', grid_title: "Haley & Gary's Wedding", booth_title: 'Haley & Gary' };
 let activeFontTab = 'google';
 let photos = [];
 let boothEnabled = true;
 let cameraOnline = false;
 let shootInProgress = false;
+let burstInProgress = false;
 
 const FILTER_NAMES = { none:'None', bw:'B&W', warm:'Warm / Golden', cool:'Cool / Faded', vignette:'Vignette', vintage:'Vintage / Sepia' };
 
@@ -398,13 +484,55 @@ async function pushSettings() {
   } catch(e) {}
 }
 
+// ── Load current settings from server on page open ──
+// Ensures the control panel reflects whatever was last set, even after
+// a page refresh, instead of resetting fields back to hardcoded defaults.
+async function loadInitialSettings() {
+  try {
+    const res  = await fetch('/api/settings');
+    const data = await res.json();
+    settings = { ...settings, ...data };
+
+    if (settings.grid_title) {
+      document.getElementById('grid-title-input').value = settings.grid_title;
+    }
+    if (settings.booth_title) {
+      document.getElementById('booth-title-input').value = settings.booth_title;
+    }
+    if (settings.message) {
+      document.getElementById('msg-input').value = settings.message;
+    }
+
+    // Reflect countdown selection
+    document.querySelectorAll('.cd-btn[data-secs]').forEach(b => {
+      b.classList.toggle('active', parseInt(b.dataset.secs) === settings.countdown);
+    });
+    // Reflect filter selection
+    document.querySelectorAll('.filter-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.filter === settings.filter);
+    });
+    vignetteSliderWrap.classList.toggle('visible', settings.filter === 'vignette');
+    if (settings.vignette_strength !== undefined) {
+      vignetteSlider.value = settings.vignette_strength;
+      vignetteDisplay.textContent = settings.vignette_strength + '%';
+    }
+    // Reflect orientation selection
+    document.querySelectorAll('.orientation-btn').forEach(b => {
+      b.classList.toggle('active', b.dataset.orientation === settings.orientation);
+    });
+    // Reflect live view toggle
+    const liveBtn = document.getElementById('btn-liveview');
+    liveBtn.textContent = settings.liveview_enabled !== false ? 'Stop Live View' : 'Start Live View';
+    liveBtn.classList.toggle('stopped', settings.liveview_enabled === false);
+
+    updateStatBar();
+  } catch(e) {}
+}
+
 function updateStatBar() {
   document.getElementById('stat-countdown').textContent = settings.countdown + 's';
   document.getElementById('stat-filter').textContent = FILTER_NAMES[settings.filter] || 'None';
-  document.getElementById('stat-status').textContent = settings.enabled ? 'Active' : 'Paused';
-  const btn = document.getElementById('btn-enable');
-  btn.textContent = settings.enabled ? 'Pause Booth' : 'Resume Booth';
-  btn.className = settings.enabled ? 'on' : 'off';
+  document.getElementById('stat-status').textContent = settings.liveview_enabled !== false ? 'Active' : 'Paused';
 }
 
 // ── Poll for new photos ──
@@ -415,7 +543,6 @@ async function pollPhotos() {
     if (data.photos && data.photos.length !== photos.length) {
       photos = data.photos;
       renderGallery();
-      document.getElementById('stat-photos').textContent = photos.length;
     }
   } catch(e) {}
   setTimeout(pollPhotos, 1500);
@@ -468,9 +595,17 @@ function renderGallery() {
     printBtn.textContent = 'Print';
     printBtn.onclick = () => printPhoto(url);
 
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.className = 'g-select-checkbox';
+    checkbox.dataset.date = photo.date;
+    checkbox.dataset.file = photo.file;
+    checkbox.addEventListener('change', updateGridSelectionState);
+
     overlay.appendChild(dlBtn);
     overlay.appendChild(printBtn);
     item.appendChild(img);
+    item.appendChild(checkbox);
     item.appendChild(overlay);
     gallery.insertBefore(item, gallery.firstChild);
   });
@@ -481,12 +616,94 @@ function printPhoto(url) {
   win.onload = () => { win.print(); };
 }
 
+// ── Grid selection tracking ──
+function updateGridSelectionState() {
+  const checkboxes = document.querySelectorAll('.g-select-checkbox');
+  const checked = [...checkboxes].filter(cb => cb.checked);
+
+  // Enforce a max of 4 — uncheck the one just ticked if it would exceed 4
+  if (checked.length > 4) {
+    const justChecked = [...checkboxes].find(cb => cb.checked && cb === document.activeElement);
+    if (justChecked) justChecked.checked = false;
+  }
+
+  const finalChecked = [...document.querySelectorAll('.g-select-checkbox')].filter(cb => cb.checked);
+  document.getElementById('grid-selected-count').textContent = finalChecked.length;
+  document.getElementById('btn-grid-selected').disabled = finalChecked.length !== 4;
+
+  checkboxes.forEach(cb => {
+    cb.closest('.g-item').classList.toggle('selected', cb.checked);
+  });
+}
+
+document.getElementById('btn-grid-clear-selection').addEventListener('click', () => {
+  document.querySelectorAll('.g-select-checkbox').forEach(cb => cb.checked = false);
+  updateGridSelectionState();
+});
+
+async function callCreateGrid(photoRefs) {
+  const resultBox = document.getElementById('grid-result');
+  const resultImg = document.getElementById('grid-result-img');
+  const title = document.getElementById('grid-title-input').value || "Haley & Gary's Wedding";
+
+  try {
+    const body = photoRefs ? { photos: photoRefs, title } : { title };
+    const res  = await fetch('/api/create-grid', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Grid creation failed');
+
+    resultImg.src = `/photos/${data.date}/${data.file}`;
+    resultBox.style.display = 'block';
+
+    // Clear selection after a successful grid
+    document.querySelectorAll('.g-select-checkbox').forEach(cb => cb.checked = false);
+    updateGridSelectionState();
+  } catch(e) {
+    alert('Could not create grid: ' + e.message);
+  }
+}
+
+document.getElementById('btn-grid-last4').addEventListener('click', () => {
+  callCreateGrid(null); // null = server uses most recent 4 automatically
+});
+
+document.getElementById('btn-grid-selected').addEventListener('click', () => {
+  const checked = [...document.querySelectorAll('.g-select-checkbox')].filter(cb => cb.checked);
+  if (checked.length !== 4) return;
+  const photoRefs = checked.map(cb => ({ date: cb.dataset.date, file: cb.dataset.file }));
+  callCreateGrid(photoRefs);
+});
+
+document.getElementById('grid-title-input').addEventListener('input', () => {
+  settings.grid_title = document.getElementById('grid-title-input').value;
+  pushSettings();
+});
+
+document.getElementById('booth-title-input').addEventListener('input', () => {
+  settings.booth_title = document.getElementById('booth-title-input').value;
+  pushSettings();
+});
+
 // ── Countdown buttons ──
-document.querySelectorAll('.cd-btn').forEach(btn => {
+document.querySelectorAll('.cd-btn[data-secs]').forEach(btn => {
   btn.addEventListener('click', () => {
-    document.querySelectorAll('.cd-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.cd-btn[data-secs]').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     settings.countdown = parseInt(btn.dataset.secs);
+    pushSettings();
+  });
+});
+
+// ── Orientation buttons ──
+document.querySelectorAll('.orientation-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.orientation-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    settings.orientation = btn.dataset.orientation;
     pushSettings();
   });
 });
@@ -513,12 +730,6 @@ vignetteSlider.addEventListener('input', () => {
   vignetteDisplay.textContent = val + '%';
   vignetteSlider.style.background = `linear-gradient(to right, var(--gold) 0%, var(--gold) ${val}%, rgba(255,255,255,.15) ${val}%, rgba(255,255,255,.15) 100%)`;
   settings.vignette_strength = parseInt(val);
-  pushSettings();
-});
-
-// ── Enable/disable booth ──
-document.getElementById('btn-enable').addEventListener('click', () => {
-  settings.enabled = !settings.enabled;
   pushSettings();
 });
 
@@ -638,13 +849,17 @@ function setCameraOnline(isOnline) {
 
   const shootBtn = document.getElementById('btn-shoot');
   shootBtn.disabled = !isOnline || shootInProgress || !settings.liveview_enabled;
+
+  const burstBtn = document.getElementById('btn-burst-shoot');
+  burstBtn.disabled = !isOnline || shootInProgress || burstInProgress || !settings.liveview_enabled;
 }
 
 // ── Take Photo (control panel triggers, booth screen executes) ──
 document.getElementById('btn-shoot').addEventListener('click', async () => {
-  if (shootInProgress || !cameraOnline) return;
+  if (shootInProgress || burstInProgress || !cameraOnline) return;
   shootInProgress = true;
   document.getElementById('btn-shoot').disabled = true;
+  document.getElementById('btn-burst-shoot').disabled = true;
   document.getElementById('btn-shoot').textContent = 'Counting down…';
 
   try {
@@ -664,6 +879,47 @@ document.getElementById('btn-shoot').addEventListener('click', async () => {
   shootInProgress = false;
   document.getElementById('btn-shoot').textContent = 'Take Photo';
   document.getElementById('btn-shoot').disabled = !cameraOnline || !settings.liveview_enabled;
+  document.getElementById('btn-burst-shoot').disabled = !cameraOnline || !settings.liveview_enabled;
+});
+
+// ── Take 4 Photos (burst mode) ──
+document.getElementById('btn-burst-shoot').addEventListener('click', async () => {
+  if (shootInProgress || burstInProgress || !cameraOnline) return;
+  burstInProgress = true;
+  document.getElementById('btn-shoot').disabled = true;
+  document.getElementById('btn-burst-shoot').disabled = true;
+  document.getElementById('btn-burst-shoot').textContent = 'Starting burst…';
+
+  try {
+    const startRes = await fetch('/api/burst-request', { method: 'POST' });
+    const startData = await startRes.json();
+    if (!startData.ok) throw new Error(startData.error || 'Could not start burst');
+
+    // Poll until the booth reports the full sequence is complete
+    for (let i = 0; i < 200; i++) {
+      await new Promise(r => setTimeout(r, 300));
+      const res  = await fetch('/api/burst-status');
+      const data = await res.json();
+      if (data.current_index > 0) {
+        document.getElementById('btn-burst-shoot').textContent =
+          `Shot ${data.current_index} of ${data.total}…`;
+      }
+      if (data.complete) {
+        document.getElementById('btn-burst-shoot').textContent = 'All 4 captured!';
+        await new Promise(r => setTimeout(r, 1200));
+        break;
+      }
+      if (!data.pending && !data.complete) break; // safety: burst ended unexpectedly
+    }
+  } catch(e) {
+    document.getElementById('btn-burst-shoot').textContent = 'Burst failed';
+    await new Promise(r => setTimeout(r, 1500));
+  }
+
+  burstInProgress = false;
+  document.getElementById('btn-burst-shoot').textContent = 'Take 4 Photos';
+  document.getElementById('btn-shoot').disabled = !cameraOnline || !settings.liveview_enabled;
+  document.getElementById('btn-burst-shoot').disabled = !cameraOnline || !settings.liveview_enabled;
 });
 
 // ── Live view stop/start ──
@@ -673,13 +929,99 @@ document.getElementById('btn-liveview').addEventListener('click', () => {
   btn.textContent = settings.liveview_enabled ? 'Stop Live View' : 'Start Live View';
   btn.classList.toggle('stopped', !settings.liveview_enabled);
   document.getElementById('btn-shoot').disabled = !cameraOnline || !settings.liveview_enabled;
+  document.getElementById('btn-burst-shoot').disabled = !cameraOnline || !settings.liveview_enabled;
   pushSettings();
 });
 
+// ── Restart camera (software-side USB/gphoto2 reset) ──
+document.getElementById('btn-restart-camera').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-restart-camera');
+  btn.disabled = true;
+  btn.textContent = 'Restarting…';
+  try {
+    const res = await fetch('/api/restart-camera', { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      btn.textContent = 'Reconnecting…';
+      setTimeout(() => { btn.textContent = 'Restart Camera'; btn.disabled = false; }, 3000);
+    } else {
+      btn.textContent = 'Restart Failed';
+      setTimeout(() => { btn.textContent = 'Restart Camera'; btn.disabled = false; }, 2000);
+    }
+  } catch(e) {
+    btn.textContent = 'Restart Failed';
+    setTimeout(() => { btn.textContent = 'Restart Camera'; btn.disabled = false; }, 2000);
+  }
+});
+
+document.getElementById('btn-show-idle').addEventListener('click', async () => {
+  const btn = document.getElementById('btn-show-idle');
+  btn.disabled = true;
+  btn.textContent = 'Showing…';
+  try {
+    await fetch('/api/trigger-idle', { method: 'POST' });
+  } catch(e) {}
+  setTimeout(() => { btn.textContent = 'Show Screensaver'; btn.disabled = false; }, 1500);
+});
+
+// ── SD card capacity check ──
+async function checkSdStatus() {
+  try {
+    const res  = await fetch('/api/sd-status');
+    const data = await res.json();
+    const badge = document.getElementById('sd-badge');
+    const badgeText = document.getElementById('sd-badge-text');
+
+    if (data.low && data.low_slots && data.low_slots.length > 0) {
+      badge.style.display = 'flex';
+      const slotLabels = data.low_slots.map(s => {
+        const slotNum = s.slot === 'slot1' ? '1' : '2';
+        return `Slot ${slotNum}: ${s.remaining} left`;
+      });
+      badgeText.textContent = 'SD Card Low — ' + slotLabels.join(', ');
+    } else {
+      badge.style.display = 'none';
+    }
+  } catch(e) {}
+  setTimeout(checkSdStatus, 10000);
+}
+
+// ── Disk space check (the Mac running the booth, not the camera's card) ──
+async function checkDiskStatus() {
+  try {
+    const res  = await fetch('/api/disk-status');
+    const data = await res.json();
+    const badge = document.getElementById('disk-badge');
+    const badgeText = document.getElementById('disk-badge-text');
+
+    if (data.low && data.free_gb !== null) {
+      badge.style.display = 'flex';
+      badgeText.textContent = `Disk Space Low (${data.free_gb} GB left)`;
+    } else {
+      badge.style.display = 'none';
+    }
+  } catch(e) {}
+  setTimeout(checkDiskStatus, 15000);
+}
+
+// ── Session photo count (booth-side counter, shown here too) ──
+async function pollSessionCountControl() {
+  try {
+    const res  = await fetch('/api/session-count');
+    const data = await res.json();
+    document.getElementById('stat-photos').textContent = data.count;
+  } catch(e) {}
+  setTimeout(pollSessionCountControl, 5000);
+}
+
+loadInitialSettings();
 updateStatBar();
 pollPhotos();
 checkConnection();
 checkCameraStatus();
+checkSdStatus();
+checkDiskStatus();
+pollSessionCountControl();
 </script>
 </body>
 </html>

@@ -1,0 +1,13 @@
+{
+  "filter": "none",
+  "countdown": 3,
+  "enabled": true,
+  "message": "",
+  "font": null,
+  "liveview_enabled": true,
+  "vignette_strength": 50,
+  "orientation": "portrait",
+  "grid_title": "Haley & Gary's Wedding",
+  "grid_font": null,
+  "booth_title": "Haley & Gary"
+}

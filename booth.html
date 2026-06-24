@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Wedding Photo Booth</title>
 <style>
-  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&display=swap');
+  @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300&family=Great+Vibes&display=swap');
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root { --gold: #B89B6A; --gold-light: #D4B98A; --ink: #1C1714; --ivory: #FAF7F2; --bark: #3A2E28; --red: #c0392b; }
 
@@ -33,23 +33,64 @@
     gap: 2px;
   }
   .eyebrow { font-size:.66rem; letter-spacing:.3em; text-transform:uppercase; color:var(--gold); }
-  h1 { font-family:'Playfair Display',serif; font-size:1.3rem; font-weight:400; text-align: center; }
-  h1 em { font-style:italic; color:var(--gold-light); }
+  h1 {
+    font-family:'Great Vibes', cursive;
+    font-size: 2rem;
+    font-weight: 400;
+    text-align: center;
+    letter-spacing: .01em;
+    max-width: 90%;
+    margin: 0 auto;
+    white-space: normal;
+    word-break: keep-all;
+    overflow-wrap: normal;
+    line-height: 1.25;
+  }
+  h1 em { font-style:normal; color:var(--gold-light); }
 
-  /* ── Viewfinder — fills remaining vertical space ── */
-  #viewfinder-wrap {
+  /* ── Viewfinder — capped size so the lower-res camera preview isn't
+        stretched too far and doesn't look blurry on large portrait screens ── */
+  #viewfinder-outer {
     flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 0;
+    background: #000;
+    padding: 12px;
+  }
+  #viewfinder-wrap {
     position: relative;
     overflow: hidden;
     background: #000;
-    min-height: 0;
+    width: 100%;
+    max-width: 1140px;
+    max-height: 100%;
+    border-radius: 4px;
+  }
+  /* Portrait mode: camera is physically mounted sideways, so we rotate
+     the feed 90° to display upright on a vertical monitor */
+  #viewfinder-wrap.orientation-portrait {
+    aspect-ratio: 3 / 4;
+  }
+  #viewfinder-wrap.orientation-portrait #preview-img {
+    transform: translate(-50%, -50%) rotate(90deg) scaleX(-1);
+  }
+  /* Landscape mode: camera feed is used as-is, just mirrored */
+  #viewfinder-wrap.orientation-landscape {
+    aspect-ratio: 4 / 3;
+  }
+  #viewfinder-wrap.orientation-landscape #preview-img {
+    transform: translate(-50%, -50%) scaleX(-1);
   }
   #preview-img {
+    position: absolute;
+    top: 50%; left: 50%;
     width: 100%; height: 100%;
-    object-fit: cover;
+    object-fit: contain;
     display: block;
-    transform: scaleX(-1); /* mirror for natural selfie feel */
     transition: filter .4s;
+    image-rendering: -webkit-optimize-contrast;
   }
   #placeholder {
     position: absolute; inset: 0;
@@ -61,7 +102,6 @@
     text-align: center;
     padding: 0 24px;
   }
-  .cam-icon { font-size: 4rem; opacity: .3; }
 
   /* CSS filters applied to live view (purely visual preview) */
   #preview-img.filter-bw       { filter: grayscale(100%); }
@@ -118,6 +158,29 @@
   /* Countdown */
   #countdown-overlay { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; z-index:15; pointer-events:none; opacity:0; transition:opacity .2s; }
   #countdown-overlay.visible { opacity:1; }
+
+  /* Shown briefly after the countdown hits zero, while the camera is
+     still physically capturing — tells guests not to move yet */
+  #hold-pose-overlay {
+    position: absolute; inset: 0;
+    z-index: 14;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    padding-bottom: 8%;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .25s;
+  }
+  #hold-pose-overlay.visible { opacity: 1; }
+  #hold-pose-text {
+    font-family: 'Playfair Display', serif;
+    font-style: italic;
+    font-size: clamp(1.3rem, 5vw, 2rem);
+    letter-spacing: .06em;
+    color: var(--gold-light);
+    text-shadow: 0 2px 24px rgba(0,0,0,.9), 0 0 30px rgba(0,0,0,.6);
+  }
   #countdown-num {
     font-family:'Playfair Display',serif;
     font-size: clamp(6rem, 28vw, 11rem);
@@ -150,6 +213,61 @@
     text-shadow: 0 4px 30px rgba(0,0,0,.8);
   }
 
+  /* ── Booth lock screen (shown if another device already controls this booth) ── */
+  #booth-lock-screen {
+    position: fixed; inset: 0;
+    z-index: 999;
+    background: #0a0807;
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 20px;
+    padding: 32px;
+  }
+  #booth-lock-screen.active { display: flex; }
+  #booth-lock-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.3rem, 5vw, 1.8rem);
+    color: var(--ivory);
+    text-align: center;
+  }
+  #booth-lock-sub {
+    font-size: .82rem;
+    color: rgba(255,255,255,.4);
+    text-align: center;
+    max-width: 320px;
+    line-height: 1.5;
+  }
+  #booth-lock-pin {
+    width: 100%;
+    max-width: 220px;
+    background: #1a1714;
+    border: 1px solid rgba(184,155,106,.3);
+    border-radius: 8px;
+    color: var(--ivory);
+    font-size: 1.4rem;
+    letter-spacing: .5em;
+    text-align: center;
+    padding: 14px 12px;
+    outline: none;
+  }
+  #booth-lock-pin:focus { border-color: var(--gold); }
+  #booth-lock-error { color: #e05c5c; font-size: .8rem; min-height: 1.2em; }
+  #booth-lock-btn {
+    background: var(--gold);
+    color: var(--ink);
+    border: none;
+    padding: 14px 48px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: .95rem;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  #booth-lock-btn:disabled { opacity: .5; cursor: not-allowed; }
+
   /* ── Bottom bar (status only — Take Photo lives on control panel now) ── */
   #bottombar {
     display: flex;
@@ -163,20 +281,210 @@
   }
   #status { font-size:.7rem; letter-spacing:.08em; color:rgba(255,255,255,.35); }
   #filter-label { font-size:.7rem; letter-spacing:.08em; color:var(--gold); opacity:.7; }
+  #session-count { font-size:.7rem; letter-spacing:.08em; color:rgba(255,255,255,.3); }
 
   /* Toast */
   #toast { position:fixed; bottom:70px; left:50%; transform:translateX(-50%) translateY(16px); background:var(--bark); border:1px solid var(--gold); color:var(--ivory); font-size:.8rem; letter-spacing:.06em; padding:11px 24px; pointer-events:none; opacity:0; transition:all .3s; white-space:nowrap; z-index:100; max-width: 90%; text-align:center; }
   #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* ── Idle / screensaver screen ── */
+  #idle-screen {
+    position: fixed; inset: 0;
+    z-index: 200;
+    background: radial-gradient(ellipse at center, #1C1714 0%, #0a0807 100%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 36px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .6s ease;
+    overflow: hidden;
+  }
+  #idle-screen.active { opacity: 1; pointer-events: all; }
+
+  /* ── Burst mode confirmation ── */
+  #burst-confirm-overlay {
+    position: absolute; inset: 0;
+    z-index: 18;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    background: rgba(10,8,7,.88);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .4s;
+  }
+  #burst-confirm-overlay.active { opacity: 1; }
+
+  /* ── QR code download prompt ── */
+  #qr-overlay {
+    position: absolute; inset: 0;
+    z-index: 17;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    background: rgba(10,8,7,.9);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .4s;
+  }
+  #qr-overlay.active { opacity: 1; pointer-events: all; }
+  #qr-overlay-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.1rem, 4.5vw, 1.6rem);
+    color: var(--ivory);
+    text-align: center;
+    padding: 0 24px;
+  }
+  #qr-code-box {
+    background: #fff;
+    padding: 14px;
+    border-radius: 8px;
+    width: min(180px, 38vw);
+    height: min(180px, 38vw);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  #qr-code-box img { width: 100%; height: 100%; display: block; }
+  #qr-overlay-sub {
+    font-size: .78rem;
+    letter-spacing: .08em;
+    color: rgba(255,255,255,.4);
+    text-align: center;
+    padding: 0 24px;
+  }
+  #burst-confirm-icon {
+    width: 84px; height: 84px;
+    border: 2px solid var(--gold);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: burstPop .6s cubic-bezier(.34,1.56,.64,1);
+  }
+  #burst-confirm-icon::after {
+    content: '';
+    width: 28px; height: 16px;
+    border-left: 3px solid var(--gold-light);
+    border-bottom: 3px solid var(--gold-light);
+    transform: rotate(-45deg) translate(2px, -3px);
+  }
+  @keyframes burstPop {
+    0%   { transform: scale(.3); opacity: 0; }
+    60%  { transform: scale(1.15); opacity: 1; }
+    100% { transform: scale(1); opacity: 1; }
+  }
+  #burst-confirm-text {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.4rem, 6vw, 2.2rem);
+    text-align: center;
+    color: var(--ivory);
+    padding: 0 24px;
+  }
+  #burst-confirm-text em { font-style: italic; color: var(--gold-light); }
+
+  /* Shot indicator dots during burst sequence */
+  #burst-indicator {
+    position: absolute;
+    top: 16px; left: 50%;
+    transform: translateX(-50%);
+    z-index: 16;
+    display: flex;
+    gap: 8px;
+    opacity: 0;
+    transition: opacity .3s;
+  }
+  #burst-indicator.active { opacity: 1; }
+  .burst-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    background: rgba(255,255,255,.25);
+    border: 1px solid rgba(184,155,106,.4);
+    transition: all .3s;
+  }
+  .burst-dot.done { background: var(--gold); border-color: var(--gold); }
+  .burst-dot.current { background: var(--gold-light); border-color: var(--gold-light); box-shadow: 0 0 10px var(--gold-light); }
+
+  #idle-particles { position: absolute; inset: 0; overflow: hidden; }
+  .particle {
+    position: absolute;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(184,155,106,.55) 0%, rgba(184,155,106,0) 70%);
+    animation: floatUp linear infinite;
+  }
+  @keyframes floatUp {
+    from { transform: translateY(0) translateX(0); opacity: 0; }
+    10%  { opacity: 1; }
+    90%  { opacity: 1; }
+    to   { transform: translateY(-110vh) translateX(var(--drift, 0px)); opacity: 0; }
+  }
+
+  #idle-content {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+    text-align: center;
+    padding: 0 32px;
+  }
+  #idle-eyebrow {
+    font-size: .78rem;
+    letter-spacing: .35em;
+    text-transform: uppercase;
+    color: var(--gold);
+  }
+  #idle-title {
+    font-family: 'Great Vibes', cursive;
+    font-size: clamp(3rem, 11vw, 4.6rem);
+    font-weight: 400;
+    line-height: 1.3;
+    letter-spacing: .01em;
+    max-width: 88%;
+    margin: 0 auto;
+    white-space: normal;
+    word-break: keep-all;
+    overflow-wrap: normal;
+  }
+  #idle-title em { font-style: normal; color: var(--gold-light); }
+  #btn-start {
+    background: var(--gold);
+    color: var(--ink);
+    border: none;
+    padding: 18px 64px;
+    font-family: 'Cormorant Garamond', serif;
+    font-size: 1.1rem;
+    letter-spacing: .2em;
+    text-transform: uppercase;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all .2s;
+  }
+  #btn-start:hover { background: var(--gold-light); transform: translateY(-2px); }
+  #btn-start:active { transform: translateY(0); }
 </style>
 </head>
 <body>
 
 <div id="topbar">
-  <div class="eyebrow">Sony A7IV · Live</div>
-  <h1>Forever <em>Begins</em> Here</h1>
+  <div class="eyebrow" id="topbar-eyebrow">Photo Booth</div>
+  <h1 id="topbar-title">Haley &amp; Gary</h1>
 </div>
 
-<div id="viewfinder-wrap">
+<div id="viewfinder-outer">
+<div id="viewfinder-wrap" class="orientation-portrait">
   <div class="corner tl"></div>
   <div class="corner tr"></div>
   <div class="corner bl"></div>
@@ -184,21 +492,55 @@
   <div id="custom-message-overlay"><div id="custom-message"></div></div>
   <div id="vignette-overlay"></div>
   <div id="placeholder">
-    <div class="cam-icon">📷</div>
     <span>Connecting to camera…</span>
   </div>
   <img id="preview-img" src="" alt="Live view" style="display:none;" />
   <div id="flash"></div>
+  <div id="burst-indicator">
+    <div class="burst-dot" data-shot="1"></div>
+    <div class="burst-dot" data-shot="2"></div>
+    <div class="burst-dot" data-shot="3"></div>
+    <div class="burst-dot" data-shot="4"></div>
+  </div>
   <div id="countdown-overlay"><div id="countdown-num">3</div></div>
+  <div id="hold-pose-overlay"><div id="hold-pose-text">Hold that pose…</div></div>
+  <div id="burst-confirm-overlay">
+    <div id="burst-confirm-icon"></div>
+    <div id="burst-confirm-text">All <em>4 photos</em><br>captured!</div>
+  </div>
+  <div id="qr-overlay">
+    <div id="qr-overlay-title">Scan to save your photo</div>
+    <div id="qr-code-box"><img id="qr-code-img" src="" alt="QR code" /></div>
+    <div id="qr-overlay-sub">Point your phone's camera at the code</div>
+  </div>
   <div id="offline-overlay"><div id="offline-text">Offline</div></div>
+</div>
 </div>
 
 <div id="bottombar">
   <div id="status">Waiting for camera…</div>
+  <div id="session-count">0 photos today</div>
   <div id="filter-label">No filter</div>
 </div>
 
 <div id="toast"></div>
+
+<div id="booth-lock-screen">
+  <div id="booth-lock-title">This booth is already open elsewhere</div>
+  <div id="booth-lock-sub">Enter the control panel PIN to take over the booth display on this device instead.</div>
+  <input type="password" id="booth-lock-pin" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="••••" />
+  <div id="booth-lock-error"></div>
+  <button id="booth-lock-btn">Take Over</button>
+</div>
+
+<div id="idle-screen">
+  <div id="idle-particles"></div>
+  <div id="idle-content">
+    <p id="idle-eyebrow">Photo Booth</p>
+    <h2 id="idle-title">Haley &amp; Gary</h2>
+    <button id="btn-start">Start</button>
+  </div>
+</div>
 
 <script>
 let shooting = false;
@@ -208,6 +550,8 @@ let customMessage = null;
 let currentFontKey = null;
 let cameraOnline = false;
 let liveviewRunning = true;
+let currentOrientation = 'portrait';
+let currentBoothTitle = null;
 let lastSuccessfulFrame = 0;
 const OFFLINE_THRESHOLD_MS = 4000; // no frame in 4s = offline
 
@@ -218,6 +562,7 @@ const filterLabel = document.getElementById('filter-label');
 const msgEl       = document.getElementById('custom-message');
 const msgOverlay  = document.getElementById('custom-message-overlay');
 const vigEl       = document.getElementById('vignette-overlay');
+const viewfinderWrap = document.getElementById('viewfinder-wrap');
 const offlineOverlay = document.getElementById('offline-overlay');
 
 const FILTER_NAMES = {
@@ -278,14 +623,28 @@ async function previewLoop() {
         setCameraOnline(true);
       }
     } catch(e) {}
-    await sleep(150);
+    await sleep(80);
   }
+}
+
+const offlineText = document.getElementById('offline-text');
+
+function showStatusOverlay(text) {
+  offlineText.textContent = text;
+  offlineOverlay.classList.add('active');
+}
+function hideStatusOverlay() {
+  offlineOverlay.classList.remove('active');
 }
 
 function setCameraOnline(isOnline) {
   if (isOnline === cameraOnline) return;
   cameraOnline = isOnline;
-  offlineOverlay.classList.toggle('active', !isOnline);
+  if (!isOnline) {
+    showStatusOverlay('Offline');
+  } else if (liveviewRunning) {
+    hideStatusOverlay();
+  }
   statusEl.textContent = isOnline ? 'Camera ready' : 'Camera offline';
 }
 
@@ -324,17 +683,136 @@ async function pollShootCommand() {
     const data = await res.json();
     if (data.pending && !shooting) {
       shooting = true;
+      registerRemoteActivity();
+      if (idleActive) hideIdleScreen();
       await runCountdown(countdownSecs);
       // Fire the shutter exactly now, at countdown zero
       flashScreen();
+      showHoldPose();
       await fetch('/api/shoot-ack', { method: 'POST' });
-      // Don't wait for the slow download/transfer — return to live view
-      // immediately. The photo will simply appear in the gallery shortly.
+      // The capture itself takes a few seconds — keep the "hold that pose"
+      // message up until the server reports it's genuinely finished,
+      // rather than guessing with a fixed timer.
+      await waitForCaptureToFinish();
+      hideHoldPose();
       showToast('Got it! Developing your photo…');
+      await showQrCodeForLastPhoto();
       shooting = false;
     }
   } catch(e) {}
   setTimeout(pollShootCommand, 400);
+}
+
+function showHoldPose() {
+  document.getElementById('hold-pose-overlay').classList.add('visible');
+}
+function hideHoldPose() {
+  document.getElementById('hold-pose-overlay').classList.remove('visible');
+}
+
+async function waitForCaptureToFinish() {
+  // Small initial delay to ensure the server's background capture thread
+  // has actually started (and set capturing_photo = True) before we check
+  await sleep(200);
+  // Poll capture-status until the server reports it's no longer capturing.
+  // Capped at ~8s as a safety net in case something goes wrong server-side,
+  // so the booth never gets stuck showing "hold that pose" indefinitely.
+  for (let i = 0; i < 26; i++) {
+    try {
+      const res  = await fetch('/api/capture-status');
+      const data = await res.json();
+      if (!data.capturing) return;
+    } catch(e) {}
+    await sleep(300);
+  }
+}
+
+// ── QR code download prompt ──
+const QR_DISPLAY_SECONDS = 8;
+
+async function showQrCodeForLastPhoto() {
+  try {
+    const res  = await fetch('/api/last-photo');
+    const data = await res.json();
+    if (!data.photo) return;
+
+    const qrImg = document.getElementById('qr-code-img');
+    qrImg.src = `/api/qr-code/${data.photo.date}/${data.photo.file}?t=${Date.now()}`;
+
+    const overlay = document.getElementById('qr-overlay');
+    overlay.classList.add('active');
+    await sleep(QR_DISPLAY_SECONDS * 1000);
+    overlay.classList.remove('active');
+  } catch(e) {}
+}
+
+// ── Burst mode (4-shot sequence) ──
+let burstActive = false;
+let lastHandledBurstIndex = 0;
+
+function updateBurstDots(currentIndex, total) {
+  document.querySelectorAll('.burst-dot').forEach(dot => {
+    const shotNum = parseInt(dot.dataset.shot);
+    dot.classList.remove('done', 'current');
+    if (shotNum < currentIndex) dot.classList.add('done');
+    else if (shotNum === currentIndex) dot.classList.add('current');
+  });
+}
+
+async function showBurstConfirmation() {
+  const overlay = document.getElementById('burst-confirm-overlay');
+  overlay.classList.add('active');
+  await sleep(2800);
+  overlay.classList.remove('active');
+  // Offer a QR code for the last of the 4 shots — showing all 4 separately
+  // would overwhelm guests waiting at the booth
+  await showQrCodeForLastPhoto();
+}
+
+async function pollBurstStatus() {
+  try {
+    const res  = await fetch('/api/burst-status');
+    const data = await res.json();
+
+    if (data.pending && !burstActive && !shooting) {
+      // A new burst has started
+      burstActive = true;
+      shooting = true; // reuse the existing "busy" flag so single-shot polling pauses
+      registerRemoteActivity();
+      if (idleActive) hideIdleScreen();
+      document.getElementById('burst-indicator').classList.add('active');
+      lastHandledBurstIndex = 0;
+    }
+
+    if (burstActive && data.current_index > lastHandledBurstIndex && !data.capturing) {
+      // Time to run the countdown + fire shot N
+      const shotIndex = data.current_index;
+      lastHandledBurstIndex = shotIndex;
+      updateBurstDots(shotIndex, data.total);
+
+      await runCountdown(countdownSecs);
+      flashScreen();
+      showHoldPose();
+      await fetch('/api/burst-ack', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ index: shotIndex })
+      });
+      await waitForCaptureToFinish();
+      hideHoldPose();
+    }
+
+    if (data.complete && burstActive) {
+      updateBurstDots(5, data.total); // mark all dots as done
+      document.getElementById('burst-indicator').classList.remove('active');
+      await showBurstConfirmation();
+      await fetch('/api/burst-reset', { method: 'POST' });
+      burstActive = false;
+      shooting = false;
+      lastHandledBurstIndex = 0;
+    }
+  } catch(e) {}
+  setTimeout(pollBurstStatus, 400);
 }
 
 // ── Sync settings from control panel ──
@@ -347,21 +825,38 @@ async function syncSettings() {
       currentFilter = data.filter;
       previewImg.className = currentFilter !== 'none' ? 'filter-' + currentFilter : '';
       vigEl.classList.toggle('active', currentFilter === 'vignette');
-      if (currentFilter === 'vignette' && data.vignette_strength !== undefined) {
-        // Map 1-100 strength to a CSS radial gradient stop position
-        // Strength 1 = very subtle (centre takes up 80% before falloff)
-        // Strength 100 = very heavy (centre only 20% before falloff)
-        const innerStop = Math.round(80 - (data.vignette_strength * 0.6));
-        vigEl.style.background = `radial-gradient(ellipse at center, transparent ${innerStop}%, rgba(0,0,0,.85) 100%)`;
-      }
       filterLabel.textContent = FILTER_NAMES[currentFilter] || 'No filter';
+    }
+
+    // Update vignette strength whenever filter is vignette — check data.filter
+    // directly rather than currentFilter to avoid any ordering issues
+    if (data.filter === 'vignette' && data.vignette_strength !== undefined) {
+      // Higher strength = smaller transparent centre = more vignette darkening
+      const innerStop = Math.round(75 - (data.vignette_strength * 0.6));
+      vigEl.style.background = `radial-gradient(ellipse at center, transparent ${innerStop}%, rgba(0,0,0,.85) 100%)`;
     }
 
     countdownSecs = data.countdown || 3;
 
+    const newOrientation = data.orientation || 'portrait';
+    if (newOrientation !== currentOrientation) {
+      currentOrientation = newOrientation;
+      viewfinderWrap.classList.remove('orientation-portrait', 'orientation-landscape');
+      viewfinderWrap.classList.add('orientation-' + currentOrientation);
+    }
+
+    const wasLiveviewRunning = liveviewRunning;
     liveviewRunning = data.liveview_enabled !== false;
+
     if (!liveviewRunning) {
       statusEl.textContent = 'Live view stopped by operator';
+      showStatusOverlay('Paused');
+    } else if (!wasLiveviewRunning) {
+      // Live view was just resumed — clear the Paused overlay.
+      // (If the camera also happens to be offline, the offline watchdog
+      // will immediately re-show the overlay with "Offline" instead.)
+      hideStatusOverlay();
+      statusEl.textContent = cameraOnline ? 'Camera ready' : 'Camera offline';
     }
 
     const newMsg = data.message || '';
@@ -372,6 +867,12 @@ async function syncSettings() {
     }
 
     if (data.font) applyFont(data.font);
+
+    if (data.booth_title && data.booth_title !== currentBoothTitle) {
+      currentBoothTitle = data.booth_title;
+      document.getElementById('topbar-title').textContent = currentBoothTitle;
+      document.getElementById('idle-title').textContent = currentBoothTitle;
+    }
 
   } catch(e) {}
   setTimeout(syncSettings, 800);
@@ -389,9 +890,216 @@ function showToast(msg, isError=false) {
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
+// ── Idle / screensaver screen ──
+const idleScreen = document.getElementById('idle-screen');
+const idleParticles = document.getElementById('idle-particles');
+const btnStart = document.getElementById('btn-start');
+const IDLE_TIMEOUT_MS = 1 * 60 * 1000; // TESTING: 1 minute (change back to 5 * 60 * 1000 for production)
+let lastInteractionTime = Date.now();
+let idleActive = false;
+
+function spawnParticles(count = 22) {
+  idleParticles.innerHTML = '';
+  for (let i = 0; i < count; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const size = 20 + Math.random() * 60;
+    p.style.width = size + 'px';
+    p.style.height = size + 'px';
+    p.style.left = Math.random() * 100 + '%';
+    p.style.bottom = (-20 - Math.random() * 30) + 'px';
+    p.style.setProperty('--drift', (Math.random() * 160 - 80) + 'px');
+    const duration = 10 + Math.random() * 14;
+    const delay = Math.random() * duration;
+    p.style.animationDuration = duration + 's';
+    p.style.animationDelay = '-' + delay + 's';
+    idleParticles.appendChild(p);
+  }
+}
+
+function showIdleScreen() {
+  if (idleActive) return;
+  idleActive = true;
+  spawnParticles();
+  idleScreen.classList.add('active');
+}
+
+function hideIdleScreen() {
+  idleActive = false;
+  idleScreen.classList.remove('active');
+  lastInteractionTime = Date.now();
+}
+
+function registerInteraction() {
+  lastInteractionTime = Date.now();
+  if (idleActive) hideIdleScreen();
+}
+
+// Any touch/click/keypress on the booth counts as interaction
+['click', 'touchstart', 'keydown'].forEach(evt => {
+  document.addEventListener(evt, registerInteraction);
+});
+
+// Remote shoot requests from the control panel also count as activity,
+// so the idle screen doesn't appear mid-session just because nobody
+// touched the booth screen itself
+function registerRemoteActivity() {
+  lastInteractionTime = Date.now();
+}
+
+setInterval(() => {
+  if (!idleActive && Date.now() - lastInteractionTime > IDLE_TIMEOUT_MS && !shooting) {
+    showIdleScreen();
+  }
+}, 2000);
+
+btnStart.addEventListener('click', () => {
+  hideIdleScreen();
+});
+
+// ── Manual idle screen trigger from control panel (backup control) ──
+async function pollIdleTrigger() {
+  try {
+    const res  = await fetch('/api/idle-trigger-check');
+    const data = await res.json();
+    if (data.triggered) {
+      showIdleScreen();
+      await fetch('/api/idle-trigger-consume', { method: 'POST' });
+    }
+  } catch(e) {}
+  setTimeout(pollIdleTrigger, 1000);
+}
+
+// ── Session photo count (booth-side, resets daily) ──
+let lastSeenPhotoCount = null;
+
+async function pollSessionCount() {
+  try {
+    const res  = await fetch('/api/session-count');
+    const data = await res.json();
+    const countEl = document.getElementById('session-count');
+    countEl.textContent = data.count + ' photo' + (data.count === 1 ? '' : 's') + ' today';
+
+    // Trigger idle screen automatically every 4 photos taken.
+    // Compare against the last seen count so this fires exactly once per
+    // multiple of 4, rather than re-triggering on every poll while idle.
+    if (lastSeenPhotoCount !== null
+        && data.count > lastSeenPhotoCount
+        && data.count % 4 === 0
+        && !shooting) {
+      showIdleScreen();
+    }
+    lastSeenPhotoCount = data.count;
+  } catch(e) {}
+  setTimeout(pollSessionCount, 5000);
+}
+
+// ── Single active booth viewer lock ──
+// Generates a random token for this browser tab, then asks the server if
+// it's allowed to be "the" active booth display. If another device/tab
+// already holds that slot, this one shows a lock screen requiring the PIN.
+const BOOTH_TOKEN = 'tok_' + Math.random().toString(36).slice(2) + Date.now().toString(36);
+let isActiveBoothSession = false;
+
+const lockScreen = document.getElementById('booth-lock-screen');
+const lockPinInput = document.getElementById('booth-lock-pin');
+const lockError = document.getElementById('booth-lock-error');
+const lockBtn = document.getElementById('booth-lock-btn');
+
+async function attemptBoothClaim() {
+  try {
+    const res  = await fetch('/api/booth-claim', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: BOOTH_TOKEN })
+    });
+    const data = await res.json();
+    if (data.claimed) {
+      isActiveBoothSession = true;
+      lockScreen.classList.remove('active');
+    } else {
+      isActiveBoothSession = false;
+      lockScreen.classList.add('active');
+    }
+  } catch(e) {
+    // If the server is unreachable we can't verify either way — default
+    // to NOT showing the lock screen so a network blip doesn't strand
+    // the legitimate operator behind a PIN wall.
+  }
+}
+
+async function boothHeartbeatLoop() {
+  if (isActiveBoothSession) {
+    try {
+      const res  = await fetch('/api/booth-heartbeat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: BOOTH_TOKEN })
+      });
+      const data = await res.json();
+      if (!data.active) {
+        // Someone else has taken over since our last heartbeat
+        isActiveBoothSession = false;
+        lockScreen.classList.add('active');
+      }
+    } catch(e) {}
+  } else {
+    // Still locked out — periodically re-check in case the other tab
+    // closed and went stale, so this device can reclaim automatically
+    await attemptBoothClaim();
+  }
+  setTimeout(boothHeartbeatLoop, 5000);
+}
+
+async function attemptTakeover() {
+  const pin = lockPinInput.value.trim();
+  if (!pin) return;
+  lockBtn.disabled = true;
+  lockError.textContent = '';
+  try {
+    const res  = await fetch('/api/booth-takeover', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: BOOTH_TOKEN, pin })
+    });
+    const data = await res.json();
+    if (data.ok) {
+      isActiveBoothSession = true;
+      lockScreen.classList.remove('active');
+      lockPinInput.value = '';
+    } else {
+      lockError.textContent = 'Incorrect PIN — try again';
+      lockPinInput.value = '';
+      lockPinInput.focus();
+    }
+  } catch(e) {
+    lockError.textContent = 'Could not reach the server';
+  }
+  lockBtn.disabled = false;
+}
+
+lockBtn.addEventListener('click', attemptTakeover);
+lockPinInput.addEventListener('keydown', e => { if (e.key === 'Enter') attemptTakeover(); });
+
+// Release the slot cleanly if this tab is closed/navigated away while active
+window.addEventListener('beforeunload', () => {
+  if (isActiveBoothSession) {
+    // Use sendBeacon for a fire-and-forget request during page unload.
+    // Wrap the JSON in a Blob with the correct content type so Flask's
+    // request.get_json() can parse it correctly.
+    const blob = new Blob([JSON.stringify({ token: BOOTH_TOKEN })], { type: 'application/json' });
+    navigator.sendBeacon('/api/booth-release', blob);
+  }
+});
+
 previewLoop();
 syncSettings();
 pollShootCommand();
+pollBurstStatus();
+pollSessionCount();
+pollIdleTrigger();
+attemptBoothClaim();
+boothHeartbeatLoop();
 </script>
 </body>
 </html>
